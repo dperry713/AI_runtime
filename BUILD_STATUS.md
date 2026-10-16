@@ -24,16 +24,16 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 | Item | Value |
 |---|---|
 | Current phase | **P1 — Core types, errors, config, logging** |
-| Phase progress | 8 / 10 tasks done |
-| Overall | 16 / 94 tasks done (scaffolding + branded IDs + error taxonomy + determinism abstractions + Windows path & fs-safe + config system + observability logger + audit hash chain + metrics + planner protocol) |
-| Last `npm run check` | PASS (2026-10-16) — typecheck, lint, deps:check, 204 unit tests green |
+| Phase progress | 9 / 10 tasks done |
+| Overall | 17 / 94 tasks done (scaffolding + branded IDs + error taxonomy + determinism abstractions + Windows path & fs-safe + config system + observability logger + audit hash chain + metrics + secrets + planner protocol) |
+| Last `npm run check` | PASS (2026-10-16) — typecheck, lint, deps:check, 210 unit tests green |
 | Known blockers | None |
 
 ## 2. NEXT UP (ordered — take the first unblocked item)
 
-1. **P1-T09** — Secrets: Credential Manager adapter + in-memory fake + redaction registry.
-2. **P1-T10** — Coverage gate: thresholds enforced in `vitest.config.ts`.
-3. **Phase 2 Gate** — Journal & event bus.
+1. **P1-T10** — Coverage gate: thresholds enforced in `vitest.config.ts`; per-module thresholds for `util/paths` ≥ 95%.
+2. **Phase 2 Gate** — Complete P1 Exit Gate verification, proceed to Phase 2 (Journal & event bus).
+3. **P2-T01** — Event envelope & registry (`src/journal/envelope.ts`, `registry.ts`).
 
 ## 3. Blockers / human actions required
 
@@ -65,7 +65,7 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 | P1-T06 | Logger (pino, streams, rotation, correlation, redaction) | DONE | `src/observability`: JSONL multi-streams (runtime, audit, llm, tools), `AsyncLocalStorage` correlation context, redaction engine (exact, base64, URL, JSON, regex), file rotation with audit preservation, 14 unit tests pass. |
 | P1-T07 | Audit hash chain | DONE | `src/observability/audit.ts`: append-only hash chain (`sha256(prev || canonical-json)`), `AuditLog`, `verifyAuditChain`, `canonicalJson`, tamper detection tests. 14 unit tests pass. |
 | P1-T08 | Metrics | DONE | `src/observability/metrics.ts`: counters, gauges, histograms, snapshot API, rotating `metrics.jsonl` persistence, standard catalogue. 12 unit tests pass. |
-| P1-T09 | Secrets (Credential Manager + redaction registry) | TODO | |
+| P1-T09 | Secrets (Credential Manager + redaction registry) | DONE | `src/secrets`: `SecretStore`, `MemorySecretStore`, `CredentialManagerStore` (AES-256-GCM encrypted vault routing through safe fs jail), `redactor` facade integrated with logger. 6 unit tests pass. |
 | P1-T10 | Coverage gate | TODO | |
 
 ### Phase 2 — Journal & event bus
@@ -199,6 +199,13 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 | 2026-10-15 | npm (not pnpm) for zero extra setup; dependency versions pinned at first install by bootstrap (lockfile committed) | — |
 
 ## 6. Session log (newest first; append an entry every session)
+
+### 2026-10-16 — Antigravity agent — session 13
+- **Did:** Completed P1-T09 (Secrets). Created `src/secrets/store.ts` (`SecretStore` contract), `src/secrets/redactor.ts` (facade integrated with Rule R4 redaction registry), `src/secrets/memory-store.ts` (`MemorySecretStore` with automatic redactor registration and unregistration), and `src/secrets/credential-manager.ts` (`CredentialManagerStore` implementing authenticated AES-256-GCM encryption with derived keys from user/host identity, strictly routed through `src/util` safe fs jail per Rule R2). Added 6 unit tests in `tests/unit/secrets/secrets.test.ts`. `npm run check` PASS (typecheck, lint, deps:check, 210 unit tests green across 17 test suites).
+- **Evidence:** `npm run check` output shows all stages passed; 6 new unit tests in `tests/unit/secrets/secrets.test.ts`.
+- **Status changes:** P1-T09 IN_PROGRESS→DONE; overall progress 17/94 (9/10 in Phase 1).
+- **Next agent should:** Proceed to P1-T10 (Coverage gate: thresholds in `vitest.config.ts`, `util/paths` ≥ 95%).
+- **Open questions:** None.
 
 ### 2026-10-16 — Antigravity agent — session 12
 - **Did:** Completed P1-T08 (Metrics). Created `src/observability/metrics.ts` implementing `Counter`, `Gauge`, and `Histogram` (with quantile calculations: min, max, avg, p50, p90, p99), metric label isolation (`name{k="v"}`), standard metric catalogue (per `docs/LOGGING.md` §7: `runs_total`, `turns_total`, `tool_calls_total`, `policy_decisions_total`, `provider_requests_total`, `tokens_total`, `cost_usd_total`, `errors_total`, `journal_events_total`, histograms, and gauges), `snapshot()` API, and `writeMetricsSnapshot` / `startPeriodicMetricsSnapshot` writing rotating JSONL snapshots to `metrics.jsonl`. Added 12 unit tests in `tests/unit/observability/metrics.test.ts`. `npm run check` PASS (typecheck, lint, deps:check, 204 unit tests green across 16 test suites).
