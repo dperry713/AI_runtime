@@ -1,0 +1,56 @@
+{
+  "name": "air-runtime",
+  "version": "0.0.0",
+  "description": "AIR — production-grade AI-native agent runtime and shell for Windows",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "air": "dist/shell/main.js",
+    "aird": "dist/service/main.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "deps:check": "depcruise src --config .dependency-cruiser.cjs",
+    "test": "vitest run tests/unit tests/integration --passWithNoTests",
+    "test:unit": "vitest run tests/unit --passWithNoTests",
+    "test:integration": "vitest run tests/integration --passWithNoTests",
+    "test:e2e": "vitest run tests/e2e --passWithNoTests",
+    "test:chaos": "vitest run tests/chaos --passWithNoTests",
+    "test:security": "vitest run tests/security --passWithNoTests",
+    "test:perf": "vitest run tests/perf --passWithNoTests",
+    "test:eval": "vitest run tests/eval --passWithNoTests",
+    "test:coverage": "vitest run tests/unit tests/integration --coverage --passWithNoTests",
+    "check": "npm run typecheck && npm run lint && npm run deps:check && npm test"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "commander": "^15.0.0",
+    "execa": "^10.1.1",
+    "fast-glob": "^3.3.3",
+    "pino": "^10.4.0",
+    "pino-roll": "^4.0.0",
+    "ulid": "^3.0.2",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^26.6.5",
+    "@vitest/coverage-v8": "^5.0.4",
+    "dependency-cruiser": "^18.6.0",
+    "eslint": "^10.12.0",
+    "fast-check": "^4.10.2",
+    "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.2",
+    "vitest": "^5.0.4"
+  }
+}

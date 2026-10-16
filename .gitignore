@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+var/
+*.log
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+native/**/target/
+.vscode/*
+!.vscode/settings.json
+.idea/
+Thumbs.db
+desktop.ini

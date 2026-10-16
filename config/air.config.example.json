@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "logging": {
+    "level": "info",
+    "levels": { "providers.anthropic": "info" },
+    "llmPayloads": "redacted",
+    "maxTotalMb": 1024,
+    "rotate": { "maxSizeMb": 50, "keep": 10 }
+  },
+  "providers": [
+    {
+      "id": "anthropic",
+      "type": "anthropic",
+      "model": "<model-id>",
+      "apiKeySecret": "anthropic-api-key"
+    },
+    {
+      "id": "local",
+      "type": "openai-compat",
+      "baseUrl": "http://127.0.0.1:1234/v1",
+      "model": "<local-model-id>"
+    }
+  ],
+  "defaults": {
+    "provider": "anthropic",
+    "fallbackProviders": ["local"],
+    "agent": "default",
+    "policyProfile": "project-write"
+  },
+  "budgets": {
+    "maxUsdPerRun": 2.0,
+    "maxTokensPerRun": 500000,
+    "maxStepsPerRun": 100,
+    "maxWallClockMinutes": 60
+  },
+  "journal": {
+    "fsync": "batch",
+    "segmentMaxMb": 64
+  },
+  "sandbox": {
+    "defaultTimeoutSeconds": 120,
+    "maxOutputBytes": 1048576,
+    "maxProcessesPerCommand": 32,
+    "maxMemoryMbPerCommand": 2048,
+    "networkDefault": "none"
+  },
+  "ipc": {
+    "pipeName": "air"
+  },
+  "concurrency": {
+    "maxActiveRuns": 4,
+    "maxParallelToolCalls": 4
+  }
+}

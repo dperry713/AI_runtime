@@ -1,0 +1,61 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 6 * * *' # nightly: chaos + full security + perf
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run deps:check
+      - run: npm run test:coverage
+      - run: npm run test:e2e
+      - run: npm run test:security
+      - run: npm audit --omit=dev --audit-level=high
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: coverage/
+          if-no-files-found: ignore
+
+  nightly:
+    if: github.event_name == 'schedule'
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Chaos suite
+        run: npm run test:chaos
+        env:
+          AIR_CHAOS_ITERATIONS: '1000'
+      - run: npm run test:security
+      - run: npm run test:perf
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nightly-logs
+          path: var/test-logs/
+          if-no-files-found: ignore
