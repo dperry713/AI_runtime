@@ -3,11 +3,11 @@ project: AI_runtime
 codename: AIR
 status_schema: 1
 last_updated: 2026-10-16
-current_phase: P2
-current_phase_name: Journal & event bus
+current_phase: P3
+current_phase_name: Provider layer
 overall_tasks_total: 94
-overall_tasks_done: 24
-overall_progress_pct: 26
+overall_tasks_done: 25
+overall_progress_pct: 27
 repo_path: C:\Users\d\OneDrive\Desktop\AI_runtime
 runtime_home_default: "%LOCALAPPDATA%\\AIR"
 last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after each `npm run check`
@@ -23,18 +23,18 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 
 | Item | Value |
 |---|---|
-| Current phase | **P2 — Journal & event bus** |
-| Phase progress | Phase 2: 6 / 7 tasks done |
-| Overall | 24 / 94 tasks done (Phase 0 complete + Phase 1 complete + P2-T01 + P2-T02 + P2-T03 + P2-T04 + P2-T05 + P2-T06 + planner protocol) |
-| Last `npm run check` | PASS (2026-10-16) — typecheck, lint, deps:check, 365 unit tests green (+ 3 chaos tests green) |
-| Coverage gate | PASS (2026-10-16) — 95.22% stmts, 85.49% branches, 97.46% funcs, 96.07% lines; `src/journal/**` 97.79% lines, 90.10% branches, 97.79% funcs, 98.94% stmts; `util/paths` 98.71% stmts, 92.53% branches |
+| Current phase | **P3 — Provider layer** (Phase 2 complete) |
+| Phase progress | Phase 2: 7 / 7 tasks done (100%) |
+| Overall | 25 / 94 tasks done (Phase 0 complete + Phase 1 complete + Phase 2 complete + planner protocol) |
+| Last `npm run check` | PASS (2026-10-16) — typecheck, lint, deps:check, 397 unit tests green (+ 3 chaos tests green) |
+| Coverage gate | PASS (2026-10-16) — 95.42% stmts, 86.24% branches, 97.55% funcs, 96.24% lines; `src/journal/**` 99.03% lines, 90.88% branches, 97.96% funcs, 97.97% stmts; `util/paths` 98.71% stmts, 92.53% branches |
 | Known blockers | None |
 
 ## 2. NEXT UP (ordered — take the first unblocked item)
 
-1. **P2-T07** — Upcasters framework: stub + test with synthetic v1→v2 (`src/journal/upcasters.ts`).
-2. **P3-T01** — Provider interface & normalized types (`src/providers/types.ts`).
-3. **P3-T02** — Mock/scripted provider (`src/providers/mock.ts`).
+1. **P3-T01** — Provider interface & normalized types (`src/providers/types.ts`).
+2. **P3-T02** — Mock/scripted provider (`src/providers/mock.ts`).
+3. **P3-T03** — Anthropic adapter (`src/providers/anthropic.ts`).
 
 ## 3. Blockers / human actions required
 
@@ -78,7 +78,7 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 | P2-T04 | Typed event bus | DONE | `src/journal/event-bus.ts`, `tests/unit/journal/event-bus.test.ts`: in-process pub/sub, per-subscriber bounded FIFO queues with backpressure drop policies (`drop-oldest`, `drop-newest`, `error`), subscription filters (exact/regex stream, streamPrefix, wildcard types, runId/sessionId, custom predicate), `waitFor` helper with timeouts, graceful drain lifecycle on shutdown, subscriber error isolation, metrics integration (counters for published/delivered/dropped/errors, gauges for active subs and queue depth). 22 unit tests pass (99.13% lines, 91.76% branches, 99.25% funcs). |
 | P2-T05 | Reader & replay engine | DONE | `src/journal/reader.ts`, `src/journal/replay.ts`, `tests/unit/journal/replay.test.ts`: Point lookups by EventId or (stream, seq) via IndexStore or direct segment scan; exact byte-slice reading (`readEventAt`) with CRC-32 verification; range queries/async streaming (`readStream`, `readStreamIter`) with fromSeq/toSeq/limit/order; pure folding `State = fold(events)` (`foldEvents`); pluggable snapshot stores (`MemorySnapshotStore`, `FileSnapshotStore`); snapshotting every N events; run lifecycle projection (`reduceRunState`); property-based replay equivalence test `fold(replay(events)) == live projection`. 12 unit tests pass (100% lines in replay, 95.04% in reader). |
 | P2-T06 | Crash recovery | DONE | `src/journal/recovery.ts`, `tests/unit/journal/recovery.test.ts`, `tests/chaos/journal-recovery.test.ts`: Torn-write detection and truncation to last valid line (`inspectSegmentFile`, `repairSegmentFile`), mid-file corruption detection with line number and quarantine, emission of `system.recovered` and `system.quarantine` events via event bus, full SQLite index rebuild from segment files (`rebuildIndex`) with batching, index reconciliation against disk truth (`reconcileIndex`), and crash recovery runner (`recoverJournal`). 16 unit tests and 3 chaos tests pass (100% lines in recovery.ts, 90.10% branch coverage across journal module). |
-| P2-T07 | Upcasters framework | TODO | |
+| P2-T07 | Upcasters framework | DONE | `src/journal/upcasters.ts`, `tests/unit/journal/upcasters.test.ts`: Just-in-time schema evolution framework. `Upcaster<TInput, TOutput>` interface, `createUpcaster`, `defaultVersionExtractor` (meta.schemaVersion -> payload.schemaVersion -> payload.version -> payload.v -> 1), `UpcasterRegistry` supporting step-by-step chaining ($v1 \to v2 \to v3$), gap detection, cycle prevention, error isolation with `AirError('UPCASTER_FAILED')`, batch and async streaming upcasters (`upcastAll`, `upcastStream`). Canonical reference synthetic fixtures (`SyntheticV1Payload`, `SyntheticV2Payload`, `SyntheticV3Payload`, `syntheticV1ToV2Upcaster`, `syntheticV2ToV3Upcaster`). Integrated with `JournalReader` (point & range queries) and `ReplayEngine` (`foldEvents`, `replayStream`). 32 unit tests pass (100% lines, 96.22% branches in upcasters.ts). Exit Gate P2 complete. |
 
 ### Phase 3 — Provider layer
 | ID | Task | Status | Notes |
@@ -201,7 +201,12 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 
 ## 6. Session log (newest first; append an entry every session)
 
-### 2026-10-16 — Antigravity agent — session 13
+### 2026-10-16 — Antigravity Engineering Agent — session 21
+- **Did:** Implemented P2-T07 (Upcasters framework) and satisfied Exit Gate P2. Built `src/journal/upcasters.ts` and re-exported types from `src/journal/index.ts`: (1) `Upcaster<TInput, TOutput>` interface, `createUpcaster`, pure functional upcasters, and `defaultVersionExtractor` inspecting `meta.schemaVersion`, `payload.schemaVersion`, `payload.version`, `payload.v`, defaulting to version 1. (2) `UpcasterRegistry`: stepwise chained migrations ($v1 \to v2 \to v3$), gap detection, cycle prevention, type safety, error isolation with `AirError('UPCASTER_FAILED')`, and batch / streaming execution (`upcastAll`, `upcastStream`). (3) Reference synthetic fixtures: `SyntheticV1Payload`, `SyntheticV2Payload`, `SyntheticV3Payload`, `syntheticV1ToV2Upcaster`, `syntheticV2ToV3Upcaster`. (4) Integrated `UpcasterRegistry` into `JournalReader` (point queries and range/iterator queries) and `ReplayEngine` (`foldEvents`, `replayStream`). (5) Added 32 unit tests in `tests/unit/journal/upcasters.test.ts`. Total test suite reached 397 unit tests across 24 files (+ 3 chaos tests). Exit Gate P2 fully satisfied: chaos suite green, replay equivalence green, index rebuild from segments green.
+- **Evidence:** `npm run check` PASS (typecheck clean, ESLint clean, depcruise 0 violations across 69 modules, 397 unit tests green). `npm run test:chaos` PASS (3/3 chaos tests green). `npm run test:coverage` PASS (statements: 95.42%, branches: 86.24%, functions: 97.55%, lines: 96.24%; `src/journal/**`: 99.03% lines, 90.88% branches, 97.96% functions, 97.97% statements; `src/journal/upcasters.ts`: 100% lines, 96.22% branches; `src/util/paths.ts`: 98.71% statements, 92.53% branches).
+- **Status changes:** P2-T07 IN_PROGRESS→DONE; overall progress 25/94 (27%); Phase 2 100% complete (7/7).
+- **Next agent should:** Begin Phase 3 with P3-T01 (Provider interface & normalized types: `src/providers/types.ts`).
+
 - **Did:** Completed P1-T09 (Secrets). Created `src/secrets/store.ts` (`SecretStore` contract), `src/secrets/redactor.ts` (facade integrated with Rule R4 redaction registry), `src/secrets/memory-store.ts` (`MemorySecretStore` with automatic redactor registration and unregistration), and `src/secrets/credential-manager.ts` (`CredentialManagerStore` implementing authenticated AES-256-GCM encryption with derived keys from user/host identity, strictly routed through `src/util` safe fs jail per Rule R2). Added 6 unit tests in `tests/unit/secrets/secrets.test.ts`. `npm run check` PASS (typecheck, lint, deps:check, 210 unit tests green across 17 test suites).
 - **Evidence:** `npm run check` output shows all stages passed; 6 new unit tests in `tests/unit/secrets/secrets.test.ts`.
 - **Status changes:** P1-T09 IN_PROGRESS→DONE; overall progress 17/94 (9/10 in Phase 1).

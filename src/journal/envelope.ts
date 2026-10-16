@@ -31,6 +31,7 @@ export const EventMetaSchema = z.object({
   spanId: z.string().min(1).optional(),
   causationId: EventIdSchema.optional(),
   correlationId: z.string().min(1).optional(),
+  schemaVersion: z.number().int().positive().optional(),
 });
 
 export type EventMeta = z.infer<typeof EventMetaSchema>;

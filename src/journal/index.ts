@@ -169,5 +169,21 @@ export {
   recoverJournal,
 } from './recovery.js';
 
-
-
+export {
+  type Upcaster,
+  type UpcasterFunction,
+  type VersionExtractor,
+  defaultVersionExtractor,
+  type CreateUpcasterOptions,
+  createUpcaster,
+  type UpcasterRegistryOptions,
+  UpcasterRegistry,
+  SyntheticV1PayloadSchema,
+  type SyntheticV1Payload,
+  SyntheticV2PayloadSchema,
+  type SyntheticV2Payload,
+  SyntheticV3PayloadSchema,
+  type SyntheticV3Payload,
+  syntheticV1ToV2Upcaster,
+  syntheticV2ToV3Upcaster,
+} from './upcasters.js';

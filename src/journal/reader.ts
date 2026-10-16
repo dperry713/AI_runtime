@@ -17,6 +17,7 @@ import type { EventId } from '../types/index.js';
 import { canonicalize } from '../util/index.js';
 import type { EventEnvelope } from './envelope.js';
 import type { IndexStore } from './index-store.js';
+import type { UpcasterRegistry } from './upcasters.js';
 import {
   parseEventLine,
   parseSegmentFileName,
@@ -27,6 +28,7 @@ import {
 export interface JournalReaderOptions {
   journalDir?: string | undefined;
   indexStore?: IndexStore | undefined;
+  upcasters?: UpcasterRegistry | undefined;
 }
 
 export interface StreamReadOptions {
@@ -39,12 +41,14 @@ export interface StreamReadOptions {
 export class JournalReader {
   private readonly journalDir?: string | undefined;
   private readonly indexStore?: IndexStore | undefined;
+  private readonly upcasters?: UpcasterRegistry | undefined;
 
   constructor(options?: JournalReaderOptions) {
     if (options?.journalDir) {
       this.journalDir = canonicalize(options.journalDir);
     }
     this.indexStore = options?.indexStore;
+    this.upcasters = options?.upcasters;
   }
 
   /**
@@ -70,7 +74,7 @@ export class JournalReader {
       const fullPath = path.join(this.journalDir, file);
       const res = await readSegmentEvents(fullPath);
       const found = res.validEvents.find((e) => e.id === id);
-      if (found) return found;
+      if (found) return this.upcasters ? this.upcasters.upcast(found) : found;
     }
 
     return null;
@@ -97,7 +101,7 @@ export class JournalReader {
     for (const segmentPath of segments) {
       const res = await readSegmentEvents(segmentPath);
       const found = res.validEvents.find((e) => e.seq === seq);
-      if (found) return found;
+      if (found) return this.upcasters ? this.upcasters.upcast(found) : found;
     }
 
     return null;
@@ -192,7 +196,7 @@ export class JournalReader {
     }
 
     for (const event of allEvents) {
-      yield event;
+      yield this.upcasters ? this.upcasters.upcast(event) : event;
     }
   }
 
@@ -234,7 +238,7 @@ export class JournalReader {
         );
       }
 
-      return parsed.envelope;
+      return this.upcasters ? this.upcasters.upcast(parsed.envelope) : parsed.envelope;
     } finally {
       await fh.close();
     }

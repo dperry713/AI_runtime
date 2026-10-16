@@ -15,6 +15,7 @@ import { canonicalize, type Clock, SystemClock } from '../util/index.js';
 import type { EventEnvelope } from './envelope.js';
 import type { JournalReader } from './reader.js';
 import { sanitizeStream } from './segment-writer.js';
+import type { UpcasterRegistry } from './upcasters.js';
 
 export type EventReducer<S, E extends EventEnvelope = EventEnvelope> = (
   state: S,
@@ -281,10 +282,12 @@ export function foldEvents<S>(
   initialState: S,
   events: Iterable<EventEnvelope>,
   reducer: EventReducer<S>,
+  upcasters?: UpcasterRegistry,
 ): S {
   let state = initialState;
   for (const event of events) {
-    state = reducer(state, event);
+    const ev = upcasters ? upcasters.upcast(event) : event;
+    state = reducer(state, ev);
   }
   return state;
 }
@@ -297,6 +300,7 @@ export interface ReplayOptions<S> {
   snapshotStore?: SnapshotStore<S> | undefined;
   snapshotInterval?: number | undefined;
   clock?: Clock | undefined;
+  upcasters?: UpcasterRegistry | undefined;
 }
 
 export interface ReplayResult<S> {
@@ -344,11 +348,12 @@ export async function replayStream<S>(
   let eventsReplayed = 0;
   let lastProcessedSeq = startSeq > 1 ? startSeq - 1 : 0;
 
-  for await (const event of reader.readStreamIter(streamId, {
+  for await (const rawEvent of reader.readStreamIter(streamId, {
     fromSeq: startSeq,
     toSeq: options.toSeq,
     order: 'asc',
   })) {
+    const event = options.upcasters ? options.upcasters.upcast(rawEvent) : rawEvent;
     currentState = options.reducer(currentState, event);
     eventsReplayed++;
     lastProcessedSeq = event.seq;
