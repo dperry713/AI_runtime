@@ -3,6 +3,8 @@ export * from './random.js';
 export * from './id.js';
 export * from './sleep.js';
 export * from './backoff.js';
+export * from './paths.js';
+export * from './fs-safe.js';
 
 export type { Clock } from './clock.js';
 export type { Random } from './random.js';

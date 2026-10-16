@@ -72,19 +72,19 @@ describe('dependency-cruiser layer rules', () => {
   });
 
   it('detects non-index import violation', () => {
-    // Create a non-index file in util module first
-    const utilPathsFile = join(srcDir, 'util', 'paths.ts');
-    writeFileSync(utilPathsFile, `export const paths = 'test';\n`);
+    // Create a temporary non-index file in util module for testing violation
+    const utilTempFile = join(srcDir, 'util', '_temp_fixture_for_depcruise.ts');
+    writeFileSync(utilTempFile, `export const tempVal = 'test';\n`);
 
     mkdirSync(testModuleDir, { recursive: true });
 
     const violatingFile = join(testModuleDir, 'violates-index-only.ts');
-    writeFileSync(violatingFile, `import { paths } from '../util/paths';\nexport const x = 1;\n`);
+    writeFileSync(violatingFile, `import { tempVal } from '../util/_temp_fixture_for_depcruise';\nexport const x = 1;\n`);
 
     const { errorCount, violations } = runDepcruise();
 
     // Clean up the test file we created in util
-    rmSync(utilPathsFile, { force: true });
+    rmSync(utilTempFile, { force: true });
 
     expect(errorCount).toBeGreaterThan(0);
     expect(violations.some(v => v.includes('util-index-only'))).toBe(true);

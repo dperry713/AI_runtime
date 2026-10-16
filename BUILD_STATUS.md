@@ -24,16 +24,16 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 | Item | Value |
 |---|---|
 | Current phase | **P1 — Core types, errors, config, logging** |
-| Phase progress | 3 / 10 tasks done |
-| Overall | 11 / 94 tasks done (scaffolding + branded IDs + error taxonomy + determinism abstractions + planner protocol) |
-| Last `npm run check` | PASS (2026-10-16) — typecheck, lint, deps:check, 114 unit tests green |
+| Phase progress | 5 / 10 tasks done |
+| Overall | 13 / 94 tasks done (scaffolding + branded IDs + error taxonomy + determinism abstractions + Windows path & fs-safe + config system + planner protocol) |
+| Last `npm run check` | PASS (2026-10-16) — typecheck, lint, deps:check, 164 unit tests green |
 | Known blockers | None |
 
 ## 2. NEXT UP (ordered — take the first unblocked item)
 
-1. **P1-T04** — Windows path library + fs-safe: `src/util/paths`, `fs-safe`: normalize, `isInside`, ADS/device name guards, 8.3 expansion, atomic writes.
-2. **P1-T05** — Config system: `src/config` — zod schema, layered loader, `AIR_HOME` resolution, `explain`.
-3. **P1-T06** — Logger: `src/observability` — pino JSONL, streams, rotation, correlation, redaction.
+1. **P1-T06** — Logger: `src/observability` — pino JSONL, streams, rotation, correlation, redaction.
+2. **P1-T07** — Audit hash chain: append-only hash chain, writer + `verify()`.
+3. **P1-T08** — Metrics: counters/gauges/histograms, snapshot to `metrics.jsonl`.
 
 ## 3. Blockers / human actions required
 
@@ -60,8 +60,8 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 | P1-T01 | Branded IDs & core types | DONE | `src/types/ids.ts` + `src/types/schemas.ts`: `RunId, AgentId, SessionId, TurnId, ToolCallId, EventId` (ULID-backed), constructors, parse functions, zod schemas. 20 unit tests pass. |
 | P1-T02 | Error taxonomy | DONE | `src/errors/AirError.ts`: `AirError`, error codes, `isRetryable`, `toModelSafeMessage`, serialization. Fixed override & exactOptionalPropertyTypes compliance. 32 unit tests pass. |
 | P1-T03 | Determinism abstractions (Clock/Random/Id/backoff) | DONE | `src/util`: `Clock` (SystemClock, FakeClock), `Random` (SystemRandom, SeededRandom), `IdGenerator` (UlidIdGenerator, FakeIdGenerator), `sleep(abortable)`, `backoff` (full jitter). 32 unit tests pass. |
-| P1-T04 | Windows path library + fs-safe | TODO | |
-| P1-T05 | Config system | TODO | |
+| P1-T04 | Windows path library + fs-safe | DONE | `src/util/paths.ts` + `src/util/fs-safe.ts`: canonicalization, `isInside`, `assertInside` with realpath/junction handling, DOS device/ADS/UNC defenses, atomic writes, EBUSY retries. Fixed destructive test in `depcruise-violation.test.ts`. 29 unit tests pass. |
+| P1-T05 | Config system | DONE | `src/config`: Zod schema (`AirConfigSchema`), `AIR_HOME` resolution (`%LOCALAPPDATA%\AIR`), versioned migrator (`migrateConfig`), provenance-aware `explainConfig`, layered loader (`loadConfig`). 20 unit tests pass. |
 | P1-T06 | Logger (pino, streams, rotation, correlation, redaction) | TODO | |
 | P1-T07 | Audit hash chain | TODO | |
 | P1-T08 | Metrics | TODO | |
@@ -199,6 +199,20 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 | 2026-10-15 | npm (not pnpm) for zero extra setup; dependency versions pinned at first install by bootstrap (lockfile committed) | — |
 
 ## 6. Session log (newest first; append an entry every session)
+
+### 2026-10-16 — Antigravity agent — session 9
+- **Did:** Completed P1-T05 (Config system). Created `src/config/schema.ts` (`AirConfigSchema` and sub-schemas with typed defaults for Zod v4 compatibility), `src/config/home.ts` (`resolveAirHome` resolving `%LOCALAPPDATA%\AIR` per Rule R10), `src/config/migrate.ts` (`migrateConfig` versioned migrator supporting v0->v1), `src/config/explain.ts` (`explainConfig` with provenance tracing), and `src/config/loader.ts` (`loadConfig` enforcing precedence: defaults < file < env < CLI, supporting JSON/YAML and `--set` overrides). Added 20 unit tests in `tests/unit/config/config.test.ts`. `npm run check` PASS (typecheck, lint, deps:check, 164 unit tests green across 13 test suites).
+- **Evidence:** `npm run check` output shows all stages passed; 20 new unit tests in `tests/unit/config/config.test.ts`.
+- **Status changes:** P1-T05 IN_PROGRESS→DONE; overall progress 13/94 (5/10 in Phase 1).
+- **Next agent should:** Proceed to P1-T06 (Logger: `src/observability` — pino JSONL, streams, rotation, correlation, redaction).
+- **Open questions:** (1) Which providers to prioritize live-testing first (Anthropic vs local Ollama/LM Studio)? (2) Is the Rust toolchain acceptable for the sandbox helper (P7-T02)? (3) Enable Windows long paths (`LongPathsEnabled=1`)?
+
+### 2026-10-16 — Antigravity agent — session 8
+- **Did:** Completed P1-T04 (Windows path library + fs-safe). Created `src/util/paths.ts` (`canonicalize`, `isInside`, `assertInside`, `rejectUnsafeName`, `validatePathSyntax`, DOS device and ADS defenses) and `src/util/fs-safe.ts` (`readFileIn`, `readBufferIn`, `writeFileAtomicIn`, `listIn`, `mkdirIn`, `removeIn`, `existsIn`, `statIn`, EBUSY/EPERM retries). Discovered and fixed a destructive bug in `tests/unit/depcruise-violation.test.ts` where it previously deleted `src/util/paths.ts`. Added 29 unit and property-based tests (21 in `paths.test.ts`, 8 in `fs-safe.test.ts`). `npm run check` PASS (typecheck, lint, deps:check, 144 unit tests green).
+- **Evidence:** `npm run check` output shows all stages passed; 29 new unit tests in `tests/unit/util/paths.test.ts` and `tests/unit/util/fs-safe.test.ts`.
+- **Status changes:** P1-T04 TODO→DONE; overall progress 12/94 (4/10 in Phase 1).
+- **Next agent should:** Proceed to P1-T05 (Config system: `src/config`).
+- **Open questions:** (1) Which providers to prioritize live-testing first (Anthropic vs local Ollama/LM Studio)? (2) Is the Rust toolchain acceptable for the sandbox helper (P7-T02)? (3) Enable Windows long paths (`LongPathsEnabled=1`)?
 
 ### 2026-10-16 — Antigravity agent — session 7
 - **Did:** Completed P1-T03 (Determinism abstractions). Created `src/util/clock.ts` (`Clock`, `SystemClock`, `FakeClock`), `src/util/random.ts` (`Random`, `SystemRandom` using `node:crypto` avoiding `Math.random`, `SeededRandom` using Mulberry32 PRNG), `src/util/id.ts` (`IdGenerator`, `UlidIdGenerator`, `FakeIdGenerator`), `src/util/sleep.ts` (abortable sleep propagating typed `AirError`), and `src/util/backoff.ts` (Full Jitter exponential backoff). Added 32 unit tests across 5 test suites. Connected `src/agent/planner.ts` to consume `Clock` from `src/util`. `npm run check` PASS (typecheck, lint, deps:check, 114 unit tests green).
