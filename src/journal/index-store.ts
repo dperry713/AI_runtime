@@ -342,8 +342,8 @@ export class IndexStore {
     const meta = event.meta;
     const payload = event.payload as Record<string, unknown> | undefined;
 
-    const sessionId = meta?.sessionId ?? (payload && typeof payload['sessionId'] === 'string' ? payload['sessionId'] : null);
-    const runId = meta?.runId ?? (payload && typeof payload['runId'] === 'string' ? payload['runId'] : null);
+    const sessionId = meta?.sessionId ?? (payload && typeof payload['sessionId'] === 'string' ? payload['sessionId'] : (event.stream.startsWith('session:') ? event.stream.slice(8) : null));
+    const runId = meta?.runId ?? (payload && typeof payload['runId'] === 'string' ? payload['runId'] : (event.stream.startsWith('run:') ? event.stream.slice(4) : null));
     const turnId = meta?.turnId ?? (payload && typeof payload['turnId'] === 'string' ? payload['turnId'] : null);
     const toolCallId = meta?.toolCallId ?? (payload && typeof payload['toolCallId'] === 'string' ? payload['toolCallId'] : null);
 
@@ -424,8 +424,8 @@ export class IndexStore {
     const meta = event.meta;
     const payload = event.payload as Record<string, unknown> | undefined;
 
-    const sessionId = meta?.sessionId ?? (payload && typeof payload['sessionId'] === 'string' ? payload['sessionId'] : null);
-    const runId = meta?.runId ?? (payload && typeof payload['runId'] === 'string' ? payload['runId'] : null);
+    const sessionId = meta?.sessionId ?? (payload && typeof payload['sessionId'] === 'string' ? payload['sessionId'] : (event.stream.startsWith('session:') ? event.stream.slice(8) : null));
+    const runId = meta?.runId ?? (payload && typeof payload['runId'] === 'string' ? payload['runId'] : (event.stream.startsWith('run:') ? event.stream.slice(4) : null));
     const turnId = meta?.turnId ?? (payload && typeof payload['turnId'] === 'string' ? payload['turnId'] : null);
     const toolCallId = meta?.toolCallId ?? (payload && typeof payload['toolCallId'] === 'string' ? payload['toolCallId'] : null);
 

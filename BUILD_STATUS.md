@@ -6,8 +6,8 @@ last_updated: 2026-10-16
 current_phase: P2
 current_phase_name: Journal & event bus
 overall_tasks_total: 94
-overall_tasks_done: 22
-overall_progress_pct: 23
+overall_tasks_done: 23
+overall_progress_pct: 24
 repo_path: C:\Users\d\OneDrive\Desktop\AI_runtime
 runtime_home_default: "%LOCALAPPDATA%\\AIR"
 last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after each `npm run check`
@@ -24,17 +24,17 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 | Item | Value |
 |---|---|
 | Current phase | **P2 — Journal & event bus** |
-| Phase progress | Phase 2: 4 / 7 tasks done |
-| Overall | 22 / 94 tasks done (Phase 0 complete + Phase 1 complete + P2-T01 + P2-T02 + P2-T03 + P2-T04 + planner protocol) |
-| Last `npm run check` | PASS (2026-10-16) — typecheck, lint, deps:check, 337 unit tests green |
-| Coverage gate | PASS (2026-10-16) — 94.95% stmts, 85.29% branches, 97.93% funcs, 95.58% lines; `src/journal/**` 99.13% lines, 91.76% branches, 99.25% funcs; `util/paths` 98.71% stmts, 92.53% branches |
+| Phase progress | Phase 2: 5 / 7 tasks done |
+| Overall | 23 / 94 tasks done (Phase 0 complete + Phase 1 complete + P2-T01 + P2-T02 + P2-T03 + P2-T04 + P2-T05 + planner protocol) |
+| Last `npm run check` | PASS (2026-10-16) — typecheck, lint, deps:check, 349 unit tests green |
+| Coverage gate | PASS (2026-10-16) — 95.06% stmts, 85.4% branches, 97.85% funcs, 95.76% lines; `src/journal/**` 98.82% lines, 90.6% branches, 98.8% funcs, 97.97% stmts; `util/paths` 98.71% stmts, 92.53% branches |
 | Known blockers | None |
 
 ## 2. NEXT UP (ordered — take the first unblocked item)
 
-1. **P2-T05** — Reader & replay engine: iterate by stream/range, fold into projections, snapshots every N events (`src/journal/reader.ts`, `src/journal/replay.ts`).
-2. **P2-T06** — Crash recovery: torn-write detection, WAL recovery, reconciliation of index vs segment files (`src/journal/recovery.ts`).
-3. **P2-T07** — Upcasters framework: stub + test with synthetic v1→v2 (`src/journal/upcasters.ts`).
+1. **P2-T06** — Crash recovery: torn-write detection, WAL recovery, reconciliation of index vs segment files (`src/journal/recovery.ts`).
+2. **P2-T07** — Upcasters framework: stub + test with synthetic v1→v2 (`src/journal/upcasters.ts`).
+3. **P3-T01** — Provider interface & normalized types (`src/providers/types.ts`).
 
 ## 3. Blockers / human actions required
 
@@ -76,7 +76,7 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 | P2-T02 | JSONL segment writer | DONE | `src/journal/segment-writer.ts`, `tests/unit/journal/segment-writer.test.ts`: `<crc32> <json>\n` line framing, serialized FIFO queue per stream, fsync policy (`always|batch|never`), segment rotation on size threshold, atomic sealing (`.active.jsonl` -> `.sealed.jsonl`), stream resumption across restarts. 40 unit tests pass (100% lines, 90.95% branches, 100% funcs). |
 | P2-T03 | SQLite index + migrations | DONE | `src/journal/migrations.ts`, `src/journal/index-store.ts`, `tests/unit/journal/index-store.test.ts`: better-sqlite3 with WAL, configurable synchronous pragma (`FULL`/`NORMAL`/`OFF`), tables `streams`, `events`, `runs`, `sessions`, `_migrations`. Transactional atomic migrations up/down with rollback, index batching inside single tx, lifecycle projections for runs/sessions/streams, determinism via injected clock. 28 unit tests pass (99.04% lines, 92.12% branches, 99.03% funcs). |
 | P2-T04 | Typed event bus | DONE | `src/journal/event-bus.ts`, `tests/unit/journal/event-bus.test.ts`: in-process pub/sub, per-subscriber bounded FIFO queues with backpressure drop policies (`drop-oldest`, `drop-newest`, `error`), subscription filters (exact/regex stream, streamPrefix, wildcard types, runId/sessionId, custom predicate), `waitFor` helper with timeouts, graceful drain lifecycle on shutdown, subscriber error isolation, metrics integration (counters for published/delivered/dropped/errors, gauges for active subs and queue depth). 22 unit tests pass (99.13% lines, 91.76% branches, 99.25% funcs). |
-| P2-T05 | Reader & replay engine | TODO | |
+| P2-T05 | Reader & replay engine | DONE | `src/journal/reader.ts`, `src/journal/replay.ts`, `tests/unit/journal/replay.test.ts`: Point lookups by EventId or (stream, seq) via IndexStore or direct segment scan; exact byte-slice reading (`readEventAt`) with CRC-32 verification; range queries/async streaming (`readStream`, `readStreamIter`) with fromSeq/toSeq/limit/order; pure folding `State = fold(events)` (`foldEvents`); pluggable snapshot stores (`MemorySnapshotStore`, `FileSnapshotStore`); snapshotting every N events; run lifecycle projection (`reduceRunState`); property-based replay equivalence test `fold(replay(events)) == live projection`. 12 unit tests pass (100% lines in replay, 95.04% in reader). |
 | P2-T06 | Crash recovery | TODO | |
 | P2-T07 | Upcasters framework | TODO | |
 
@@ -261,6 +261,12 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 - **Status changes:** P1-T02 TODO→DONE; overall progress 10/94.
 - **Next agent should:** Proceed to P1-T03 (Determinism abstractions: `src/util` — `Clock`, `Random`, `IdGenerator`, `sleep`, `backoff`).
 - **Open questions:** (1) Which providers to prioritize live-testing first (Anthropic vs local Ollama/LM Studio)? (2) Is the Rust toolchain acceptable for the sandbox helper (P7-T02)? (3) Enable Windows long paths (`LongPathsEnabled=1`)?
+
+### 2026-10-16 — Antigravity Engineering Agent — session 19
+- **Did:** Implemented P2-T05 (Reader & replay engine). Built `src/journal/reader.ts`, `src/journal/replay.ts`, and re-exported types from `src/journal/index.ts`: (1) `JournalReader`: point reads by `EventId` or `(stream, seq)` utilizing SQLite `IndexStore` or direct segment scanning; exact byte-slice reading (`readEventAt`) with CRC-32 verification on every slice; range queries and async streaming (`readStream`, `readStreamIter`) with `fromSeq`, `toSeq`, `limit`, and `order: 'asc' | 'desc'`. (2) `ReplayEngine`: pure synchronous folding `State = fold(events)` (`foldEvents`); pluggable snapshot store interface (`SnapshotStore`) with `MemorySnapshotStore` and atomic `FileSnapshotStore`; stream replay (`replayStream`) with automatic snapshot resumption and periodic snapshotting every $N$ events (`snapshotInterval`). (3) Run lifecycle projection: `RunStateProjection`, `reduceRunState`, and `createInitialRunState`. (4) Added 12 unit tests in `tests/unit/journal/replay.test.ts` including property-based replay equivalence: `fold(replay(events)) == live projection` across the full run lifecycle (start, turns, model/tool calls, pause/resume, completion, failure, cancellation). Total unit tests reached 349 across 22 suites.
+- **Evidence:** `npm run check` PASS (typecheck clean, ESLint clean, depcruise 0 violations across 67 modules, 349 unit tests green). `npm run test:coverage` PASS (statements: 95.06%, branches: 85.40%, functions: 97.85%, lines: 95.76%; `src/journal/**`: 98.82% lines, 90.60% branches, 98.80% functions, 97.97% statements; `src/util/paths.ts`: 98.71% statements, 92.53% branches).
+- **Status changes:** P2-T05 IN_PROGRESS→DONE; overall progress 23/94 (24%); Phase 2 progress 5/7.
+- **Next agent should:** Proceed to P2-T06 (Crash recovery: torn-write detection, WAL recovery, reconciliation of index vs segment files in `src/journal/recovery.ts`).
 
 ### 2026-10-16 — Antigravity Engineering Agent — session 18
 - **Did:** Implemented P2-T04 (Typed event bus). Built `src/journal/event-bus.ts` and re-exported types from `src/journal/index.ts`: (1) In-process asynchronous pub/sub coordinating event delivery across all streams. (2) Per-subscriber bounded FIFO queues with configurable capacity (`maxQueueSize`) and backpressure drop policies (`drop-oldest`, `drop-newest`, `error` with `RESOURCE_EXHAUSTED`). (3) Expressive subscription filters matching exact or RegExp stream names, stream prefixes, wildcard/array/Set event types, runId/sessionId in meta or payload, and custom predicates. (4) Subscriber error isolation preventing failing subscriber handlers from crashing dispatcher or impacting sibling subscribers. (5) `waitFor` promise utility with timeout and automatic cleanup on resolution. (6) Lifecycle management with graceful async `drain()` and `close()` shutdown. (7) Metrics integration with `MetricsRegistry` (counters for published, delivered, dropped events, and handler errors; gauges for active subscribers and queue depth). (8) Added comprehensive unit test suite in `tests/unit/journal/event-bus.test.ts` (22 tests). Total unit tests reached 337 across 21 suites.

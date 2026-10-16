@@ -132,3 +132,26 @@ export {
   EventBus,
 } from './event-bus.js';
 
+export {
+  type JournalReaderOptions,
+  type StreamReadOptions,
+  JournalReader,
+} from './reader.js';
+
+export {
+  type EventReducer,
+  type Snapshot,
+  type SnapshotStore,
+  MemorySnapshotStore,
+  FileSnapshotStore,
+  type RunLifecycleStatus,
+  type RunStateProjection,
+  createInitialRunState,
+  reduceRunState,
+  foldEvents,
+  type ReplayOptions,
+  type ReplayResult,
+  replayStream,
+} from './replay.js';
+
+
