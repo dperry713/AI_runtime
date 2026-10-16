@@ -120,10 +120,19 @@ describe('secrets module (P1-T09)', () => {
       }
     });
 
-    it('returns undefined for non-existent secret', async () => {
+    it('returns undefined for non-existent secret and false on delete missing', async () => {
       const vaultDir = path.join(tempDir, 'vault');
       const store = new CredentialManagerStore({ vaultDir });
       expect(await store.get('missing')).toBeUndefined();
+      expect(await store.delete('missing')).toBe(false);
+    });
+
+    it('throws INVALID_ARGUMENT when secret name is empty', async () => {
+      const vaultDir = path.join(tempDir, 'vault');
+      const store = new CredentialManagerStore({ vaultDir });
+      await expect(store.get('')).rejects.toSatisfy(
+        (err: unknown) => err instanceof AirError && err.code === 'INVALID_ARGUMENT',
+      );
     });
   });
 

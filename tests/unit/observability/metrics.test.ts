@@ -10,6 +10,7 @@ import {
   MetricsRegistry,
   policyDecisionsCounter,
   runsTotalCounter,
+  startPeriodicMetricsSnapshot,
   stopPeriodicMetricsSnapshot,
   toolDurationHistogram,
   writeMetricsSnapshot,
@@ -205,6 +206,17 @@ describe('metrics module (P1-T08)', () => {
         expect(first.counters['runs_total']).toBe(1);
         expect(second.counters['runs_total']).toBe(2);
       }
+    });
+
+    it('starts and stops periodic metrics snapshot', () => {
+      const stop = startPeriodicMetricsSnapshot(metricsFile, 100);
+      expect(typeof stop).toBe('function');
+      stop();
+    });
+
+    it('throws when incrementing counter with negative amount', () => {
+      const c = new Counter('neg_test');
+      expect(() => c.inc(-5)).toThrow('increment amount must be non-negative');
     });
   });
 });

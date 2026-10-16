@@ -27,7 +27,14 @@ describe('FakeClock', () => {
     expect(clock.monotonicMs()).toBe(0);
   });
 
-  it('initializes with custom Date or ISO string', () => {
+  it('initializes with custom Date, number, or ISO string', () => {
+    const d = new Date('2026-06-15T12:00:00.000Z');
+    const clockDate = new FakeClock(d);
+    expect(clockDate.iso()).toBe('2026-06-15T12:00:00.000Z');
+
+    const clockNum = new FakeClock(d.getTime());
+    expect(clockNum.iso()).toBe('2026-06-15T12:00:00.000Z');
+
     const clock = new FakeClock('2026-06-15T12:00:00.000Z');
     expect(clock.iso()).toBe('2026-06-15T12:00:00.000Z');
   });
@@ -56,6 +63,12 @@ describe('FakeClock', () => {
 
     expect(clock.iso()).toBe('2026-01-01T00:01:00.000Z');
     expect(clock.monotonicMs()).toBe(60000);
+
+    clock.setTime(new Date('2026-01-01T00:02:00.000Z'));
+    expect(clock.iso()).toBe('2026-01-01T00:02:00.000Z');
+
+    clock.setTime(new Date('2026-01-01T00:03:00.000Z').getTime());
+    expect(clock.iso()).toBe('2026-01-01T00:03:00.000Z');
   });
 
   it('throws when setting an invalid time', () => {

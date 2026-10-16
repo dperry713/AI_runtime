@@ -10,13 +10,16 @@ import {
   getLogger,
   initLogging,
   initTestLogging,
+  MemoryLogSink,
   redactObject,
   redactString,
   registerSecret,
   resetLogging,
   RotatingFileStream,
+  StreamDispatcher,
   withContext,
 } from '../../../src/observability/index.js';
+import { AirError } from '../../../src/errors/index.js';
 import { createRunId, createSessionId, createToolCallId, createTurnId } from '../../../src/types/index.js';
 import { FakeClock } from '../../../src/util/index.js';
 
@@ -169,6 +172,48 @@ describe('observability logger module (P1-T06)', () => {
       expect(sink.records[0]?.component).toBe('providers.nvidia');
       expect(sink.records[0]?.event).toBe('nvidia.chunk');
     });
+
+    it('manages test sinks in StreamDispatcher dynamically', () => {
+      const logsDir = path.join(tempDir, 'dispatcher-logs');
+      fs.mkdirSync(logsDir, { recursive: true });
+
+      const dispatcher = new StreamDispatcher(logsDir, {
+        level: 'info',
+        llmPayloads: 'off',
+        maxTotalMb: 10,
+        rotate: { maxSizeMb: 2, keep: 2 },
+      });
+
+      const sink1 = new MemoryLogSink();
+      const sink2 = new MemoryLogSink();
+
+      dispatcher.addTestSink(sink1);
+      dispatcher.addTestSink(sink2);
+
+      const record = {
+        v: 1 as const,
+        ts: fakeClock.iso(),
+        level: 'info',
+        stream: 'runtime' as const,
+        component: 'test',
+        event: 'test.event',
+        msg: 'hello',
+        pid: 1234,
+        host: 'localhost',
+      };
+
+      dispatcher.write(record);
+      expect(sink1.records).toHaveLength(1);
+      expect(sink2.records).toHaveLength(1);
+
+      dispatcher.removeTestSink(sink1);
+      dispatcher.write(record);
+      expect(sink1.records).toHaveLength(1);
+      expect(sink2.records).toHaveLength(2);
+
+      dispatcher.flush();
+      dispatcher.close();
+    });
   });
 
   describe('redaction engine (Rule R4)', () => {
@@ -243,6 +288,10 @@ describe('observability logger module (P1-T06)', () => {
     });
 
     it('enforceTotalLogBudget prunes oldest non-audit log files without deleting audit logs', () => {
+      // Early returns: non-existent dir and within-budget dir
+      expect(() => enforceTotalLogBudget(path.join(tempDir, 'does-not-exist'), 1000)).not.toThrow();
+      expect(() => enforceTotalLogBudget(tempDir, 10000000)).not.toThrow();
+
       const runtimeLog = path.join(tempDir, 'runtime.1.log');
       const auditLog = path.join(tempDir, 'audit.1.log');
 
@@ -254,6 +303,24 @@ describe('observability logger module (P1-T06)', () => {
 
       expect(fs.existsSync(auditLog)).toBe(true);
       expect(fs.existsSync(runtimeLog)).toBe(false);
+    });
+
+    it('RotatingFileStream writes buffers directly and closes cleanly', () => {
+      const streamLog = path.join(tempDir, 'stream-buf.log');
+      const stream = new RotatingFileStream({
+        filePath: streamLog,
+        maxSizeBytes: 10000,
+        keep: 2,
+      });
+
+      stream.write(Buffer.from('binary-buffer-line\n'));
+      stream.flushSync();
+
+      expect(fs.existsSync(streamLog)).toBe(true);
+      const text = fs.readFileSync(streamLog, 'utf-8');
+      expect(text).toContain('binary-buffer-line');
+
+      stream.end();
     });
 
     it('integrates with disk-backed initLogging and flushes cleanly', () => {
@@ -271,6 +338,94 @@ describe('observability logger module (P1-T06)', () => {
       const content = fs.readFileSync(runtimePath, 'utf-8');
       expect(content).toContain('"event":"system.starting"');
       expect(content).toContain('"component":"daemon"');
+    });
+
+    it('logs errors with code, stack, retryable, durationMs, and data payload', () => {
+      const sink = initTestLogging(fakeClock, { level: 'trace' });
+      const logger = getLogger('test-comp');
+
+      const customErr = new AirError('INVALID_ARGUMENT', 'Invalid param', {
+        retryable: false,
+      });
+
+      logger.error(
+        {
+          event: 'op.failed',
+          err: customErr,
+          durationMs: 42,
+          data: { attempt: 3 },
+        },
+        'operation encountered failure',
+      );
+
+      expect(sink.records).toHaveLength(1);
+      const rec = sink.records[0];
+      expect(rec?.level).toBe('error');
+      expect(rec?.durationMs).toBe(42);
+      expect(rec?.data).toEqual({ attempt: 3 });
+      expect(rec?.err).toBeDefined();
+      expect(rec?.err?.message).toBe('Invalid param');
+      expect(rec?.err?.code).toBe('INVALID_ARGUMENT');
+      expect(rec?.err?.retryable).toBe(false);
+      expect(rec?.err?.stack).toBeDefined();
+    });
+
+    it('supports trace, warn, fatal methods and child logger context binding', () => {
+      const sink = initTestLogging(fakeClock, { level: 'trace' });
+      const baseLogger = getLogger('parent');
+      const childLogger = baseLogger.child({ subSystem: 'worker-1' });
+
+      childLogger.trace({ event: 'sub.trace' }, 'trace message');
+      childLogger.warn({ event: 'sub.warn' }, 'warn message');
+      childLogger.fatal({ event: 'sub.fatal' }, 'fatal message');
+
+      expect(sink.records).toHaveLength(3);
+      expect(sink.records[0]?.level).toBe('trace');
+      expect(sink.records[0]?.component).toBe('parent');
+      expect(sink.records[0]?.data).toEqual({ subSystem: 'worker-1' });
+      expect(sink.records[1]?.level).toBe('warn');
+      expect(sink.records[2]?.level).toBe('fatal');
+    });
+
+    it('supports MemoryLogSink clear and getRecords filter', () => {
+      const sink = initTestLogging(fakeClock);
+      const logger = getLogger('test');
+
+      logger.info({ event: 'event.one' }, 'msg 1');
+      logger.error({ event: 'event.two' }, 'msg 2');
+
+      const errors = sink.getRecords((r) => r.level === 'error');
+      expect(errors).toHaveLength(1);
+      expect(errors[0]?.event).toBe('event.two');
+
+      const all = sink.getRecords();
+      expect(all).toHaveLength(2);
+
+      sink.clear();
+      expect(sink.records).toHaveLength(0);
+    });
+
+    it('redacts circular references and array structures cleanly', () => {
+      interface CircularObj {
+        prop: string;
+        self?: CircularObj;
+      }
+      const obj: CircularObj = { prop: 'test' };
+      obj.self = obj;
+
+      const redacted = redactObject(obj);
+      expect(redacted.self).toBe('[Circular]');
+
+      const arrWithSecret = ['Bearer secret_token_abc12345678901234567890'];
+      const redactedArr = redactObject(arrWithSecret);
+      expect(redactedArr[0]).toBe('Bearer [REDACTED]');
+    });
+
+    it('lazily initializes logger when called without explicit initLogging', () => {
+      resetLogging();
+      const logger = getLogger('uninitialized-component');
+      expect(logger).toBeDefined();
+      expect(logger.component).toBe('uninitialized-component');
     });
   });
 });

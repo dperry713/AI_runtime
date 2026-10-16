@@ -99,4 +99,18 @@ describe('SeededRandom', () => {
 
     expect(s1).toEqual(s2);
   });
+
+  it('throws when min > max for SeededRandom', () => {
+    const rng = new SeededRandom(42);
+    expect(() => rng.nextInt(10, 5)).toThrow(RangeError);
+  });
+
+  it('handles choice on empty and non-empty arrays with SeededRandom', () => {
+    const rng = new SeededRandom(42);
+    expect(rng.choice([])).toBeUndefined();
+
+    const items = ['alpha', 'beta', 'gamma'];
+    const chosen = rng.choice(items);
+    expect(items).toContain(chosen);
+  });
 });

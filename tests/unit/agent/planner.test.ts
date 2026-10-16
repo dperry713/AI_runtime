@@ -340,4 +340,47 @@ describe('PlannerOrchestrator End-to-End Loop', () => {
     expect(result.history.length).toBe(3);
     expect(result.history.every((h) => h['status'] === StepStatus.REJECTED)).toBe(true);
   });
+
+  it('handles REPLAN action and continues orchestrator execution', async () => {
+    const replanStep = JSON.stringify({
+      thought_summary: 'Need new plan',
+      action: 'replan',
+    });
+    const finishStep = JSON.stringify({
+      thought_summary: 'All done now',
+      action: 'finish',
+    });
+
+    const mockClient = new MockModelClient([
+      { content: replanStep, thinking: 'Replanning strategy' },
+      { content: finishStep, thinking: 'Finishing after replan' },
+    ]);
+
+    const executor = new InMemoryExecutor();
+    const orch = new PlannerOrchestrator(config, scope, executor, { modelClient: mockClient });
+
+    const result = await orch.run('Test replan');
+    expect(result.finalStatus).toBe(StepStatus.SUCCEEDED);
+    expect(result.history.length).toBe(2);
+    expect(result.history[0]?.['action']).toBe('replan');
+    expect(result.history[1]?.['action']).toBe('finish');
+  });
+
+  it('fails step if action is next but tool_call is missing', async () => {
+    const missingToolCallStep = JSON.stringify({
+      thought_summary: 'Next action with no tool',
+      action: 'next',
+    });
+
+    const mockClient = new MockModelClient([
+      { content: missingToolCallStep, thinking: 'Forgot tool call' },
+    ]);
+
+    const executor = new InMemoryExecutor();
+    const orch = new PlannerOrchestrator(config, scope, executor, { modelClient: mockClient });
+
+    const result = await orch.run('Test missing tool call');
+    expect(result.finalStatus).toBe(StepStatus.FAILED);
+    expect(result.history[0]?.['reason']).toBe('missing_tool_call');
+  });
 });

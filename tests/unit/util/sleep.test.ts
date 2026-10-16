@@ -41,4 +41,12 @@ describe('sleep', () => {
     controller.abort();
     await expect(sleep(50, { signal: controller.signal })).rejects.toSatisfy(isAirError);
   });
+
+  it('preserves existing AirError abort reason directly', async () => {
+    const controller = new AbortController();
+    const originalErr = new (await import('../../../src/errors/index.js')).AirError('CANCELLED', 'User explicitly cancelled');
+    controller.abort(originalErr);
+
+    await expect(sleep(50, controller.signal)).rejects.toBe(originalErr);
+  });
 });

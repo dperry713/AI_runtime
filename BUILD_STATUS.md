@@ -6,8 +6,8 @@ last_updated: 2026-10-16
 current_phase: P1
 current_phase_name: Core types, errors, config, logging
 overall_tasks_total: 94
-overall_tasks_done: 10
-overall_progress_pct: 11
+overall_tasks_done: 18
+overall_progress_pct: 19
 repo_path: C:\Users\d\OneDrive\Desktop\AI_runtime
 runtime_home_default: "%LOCALAPPDATA%\\AIR"
 last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after each `npm run check`
@@ -23,17 +23,18 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 
 | Item | Value |
 |---|---|
-| Current phase | **P1 — Core types, errors, config, logging** |
-| Phase progress | 9 / 10 tasks done |
-| Overall | 17 / 94 tasks done (scaffolding + branded IDs + error taxonomy + determinism abstractions + Windows path & fs-safe + config system + observability logger + audit hash chain + metrics + secrets + planner protocol) |
-| Last `npm run check` | PASS (2026-10-16) — typecheck, lint, deps:check, 210 unit tests green |
+| Current phase | **P2 — Journal & event bus (Phase 1 100% COMPLETE)** |
+| Phase progress | Phase 1: 10 / 10 tasks done (Exit Gate P1 PASSED); Phase 2: 0 / 7 tasks done |
+| Overall | 18 / 94 tasks done (Phase 0 complete + Phase 1 complete + planner protocol) |
+| Last `npm run check` | PASS (2026-10-16) — typecheck, lint, deps:check, 235 unit tests green |
+| Coverage gate | PASS (2026-10-16) — 92.74% stmts, 80.26% branches, 97.23% funcs, 93.4% lines; `util/paths` 98.71% stmts, 92.53% branches |
 | Known blockers | None |
 
 ## 2. NEXT UP (ordered — take the first unblocked item)
 
-1. **P1-T10** — Coverage gate: thresholds enforced in `vitest.config.ts`; per-module thresholds for `util/paths` ≥ 95%.
-2. **Phase 2 Gate** — Complete P1 Exit Gate verification, proceed to Phase 2 (Journal & event bus).
-3. **P2-T01** — Event envelope & registry (`src/journal/envelope.ts`, `registry.ts`).
+1. **P2-T01** — Event envelope & registry: zod discriminated union, additive versioning rules in `docs/specs/events.md` (`src/journal/envelope.ts`, `src/journal/registry.ts`).
+2. **P2-T02** — JSONL segment writer: `<crc32> <json>\n`, single serialized queue per stream, fsync policy (`always|batch|never` config), segment rotation, atomic sealing.
+3. **P2-T03** — SQLite index + migrations: better-sqlite3, WAL, `PRAGMA synchronous=NORMAL/FULL` per config (`src/journal/index-store.ts`).
 
 ## 3. Blockers / human actions required
 
@@ -66,7 +67,7 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 | P1-T07 | Audit hash chain | DONE | `src/observability/audit.ts`: append-only hash chain (`sha256(prev || canonical-json)`), `AuditLog`, `verifyAuditChain`, `canonicalJson`, tamper detection tests. 14 unit tests pass. |
 | P1-T08 | Metrics | DONE | `src/observability/metrics.ts`: counters, gauges, histograms, snapshot API, rotating `metrics.jsonl` persistence, standard catalogue. 12 unit tests pass. |
 | P1-T09 | Secrets (Credential Manager + redaction registry) | DONE | `src/secrets`: `SecretStore`, `MemorySecretStore`, `CredentialManagerStore` (AES-256-GCM encrypted vault routing through safe fs jail), `redactor` facade integrated with logger. 6 unit tests pass. |
-| P1-T10 | Coverage gate | TODO | |
+| P1-T10 | Coverage gate | DONE | `vitest.config.ts`: global thresholds (lines ≥ 85%, functions ≥ 85%, branches ≥ 80%, statements ≥ 85%) and critical module threshold (`src/util/paths.ts` lines ≥ 95%, branches ≥ 90%, funcs ≥ 95%, stmts ≥ 95%). `npm run test:coverage` PASS: 92.74% stmts, 80.26% branches, 97.23% funcs, 93.4% lines. Exit Gate P1 fully satisfied. |
 
 ### Phase 2 — Journal & event bus
 | ID | Task | Status | Notes |
@@ -260,6 +261,12 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 - **Status changes:** P1-T02 TODO→DONE; overall progress 10/94.
 - **Next agent should:** Proceed to P1-T03 (Determinism abstractions: `src/util` — `Clock`, `Random`, `IdGenerator`, `sleep`, `backoff`).
 - **Open questions:** (1) Which providers to prioritize live-testing first (Anthropic vs local Ollama/LM Studio)? (2) Is the Rust toolchain acceptable for the sandbox helper (P7-T02)? (3) Enable Windows long paths (`LongPathsEnabled=1`)?
+
+### 2026-10-16 — Antigravity Engineering Agent — session 14
+- **Did:** Completed P1-T10 (Coverage gate & Exit Gate P1). Configured `vitest.config.ts` enforcing global thresholds (lines ≥ 85%, functions ≥ 85%, branches ≥ 80%, statements ≥ 85%) and critical module threshold (`src/util/paths.ts` lines ≥ 95%, branches ≥ 90%, functions ≥ 95%, statements ≥ 95%). Expanded unit test suites for `types/ids`, `util/fs-safe`, `util/clock`, `util/random`, `util/sleep`, `observability/logger`, `observability/metrics`, `secrets`, and `agent/planner` covering edge cases and error branches. Total suite reached 235 unit tests across 17 files.
+- **Evidence:** `npm run test:coverage` PASS (statements: 92.74%, branches: 80.26%, functions: 97.23%, lines: 93.40%; `src/util/paths.ts`: lines 98.70%, branches 92.53%, statements 98.71%, functions 100%). `npm run check` PASS (typecheck clean, ESLint clean, depcruise 0 violations, 235 unit tests passing). Exit Gate P1 fully satisfied.
+- **Status changes:** P1-T10 IN_PROGRESS→DONE; overall progress 18/94 (19%); Phase 1 100% complete (10/10).
+- **Next agent should:** Begin Phase 2 with P2-T01 (Event envelope & registry: `src/journal/envelope.ts`, `registry.ts`).
 
 ### 2026-10-15 — OpenCode agent (Nemotron 3 Ultra) — session 5
 - **Did:** Completed P1-T01 (Branded IDs & core types). Created `src/types/ids.ts` (constructors, parse functions, validation) and `src/types/schemas.ts` (zod schemas for all 6 ID types). Added 20 unit tests covering creation, parsing, validation, zod schema behavior, and type distinction. `npm run check` PASS (typecheck, lint, deps:check, 34 tests).

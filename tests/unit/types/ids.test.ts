@@ -12,6 +12,7 @@ import {
   parseTurnId,
   parseToolCallId,
   parseEventId,
+  assertValidId,
   isValidId,
   ID_REGEX,
 } from '../../../src/types/ids.js';
@@ -23,6 +24,17 @@ import {
   ToolCallIdSchema,
   EventIdSchema,
   safeParseRunId,
+  safeParseAgentId,
+  safeParseSessionId,
+  safeParseTurnId,
+  safeParseToolCallId,
+  safeParseEventId,
+  assertValidRunId,
+  assertValidAgentId,
+  assertValidSessionId,
+  assertValidTurnId,
+  assertValidToolCallId,
+  assertValidEventId,
   isValidIdString,
 } from '../../../src/types/schemas.js';
 
@@ -199,6 +211,44 @@ describe('branded IDs', () => {
         expect(schema.safeParse('01ARZ3NDEKTSV4RRFFQ69G5FAV').success).toBe(true);
         expect(schema.safeParse('invalid').success).toBe(false);
       }
+    });
+
+    it('safeParse helpers parse valid and invalid IDs', () => {
+      const valid = createRunId();
+      expect(safeParseAgentId(valid).success).toBe(true);
+      expect(safeParseSessionId(valid).success).toBe(true);
+      expect(safeParseTurnId(valid).success).toBe(true);
+      expect(safeParseToolCallId(valid).success).toBe(true);
+      expect(safeParseEventId(valid).success).toBe(true);
+
+      expect(safeParseAgentId('bad').success).toBe(false);
+      expect(safeParseSessionId('bad').success).toBe(false);
+      expect(safeParseTurnId('bad').success).toBe(false);
+      expect(safeParseToolCallId('bad').success).toBe(false);
+      expect(safeParseEventId('bad').success).toBe(false);
+    });
+
+    it('assertValid helpers parse valid IDs or throw on invalid', () => {
+      const valid = createRunId();
+      expect(assertValidRunId(valid)).toBe(valid);
+      expect(assertValidAgentId(valid)).toBe(valid);
+      expect(assertValidSessionId(valid)).toBe(valid);
+      expect(assertValidTurnId(valid)).toBe(valid);
+      expect(assertValidToolCallId(valid)).toBe(valid);
+      expect(assertValidEventId(valid)).toBe(valid);
+
+      expect(() => assertValidRunId('bad')).toThrow();
+      expect(() => assertValidAgentId('bad')).toThrow();
+      expect(() => assertValidSessionId('bad')).toThrow();
+      expect(() => assertValidTurnId('bad')).toThrow();
+      expect(() => assertValidToolCallId('bad')).toThrow();
+      expect(() => assertValidEventId('bad')).toThrow();
+    });
+
+    it('assertValidId asserts or throws', () => {
+      const valid = createRunId();
+      expect(() => assertValidId(valid, 'RunId')).not.toThrow();
+      expect(() => assertValidId('not-a-ulid', 'RunId')).toThrow('Invalid RunId: not-a-ulid');
     });
   });
 

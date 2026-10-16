@@ -395,5 +395,54 @@ defaults:
       const exp = explainConfig('completely.unknown.setting');
       expect(exp).toBeUndefined();
     });
+
+    it('loads configuration from YAML file and home discovered location', async () => {
+      const yamlPath = path.join(tempDir, 'air.config.yaml');
+      fs.writeFileSync(yamlPath, 'logging:\n  level: warn\n', 'utf-8');
+
+      const { config } = await loadConfigWithProvenance({
+        configFile: yamlPath,
+        home: tempDir,
+        env: {},
+        argv: [],
+      });
+      expect(config.logging.level).toBe('warn');
+
+      // Home discovery
+      const homeJsonPath = path.join(tempDir, 'air.config.json');
+      fs.writeFileSync(homeJsonPath, JSON.stringify({ logging: { level: 'error' } }), 'utf-8');
+      const homeLoaded = await loadConfig({
+        home: tempDir,
+        env: {},
+        argv: [],
+      });
+      expect(homeLoaded.logging.level).toBe('error');
+    });
+
+    it('throws CONFIG_INVALID when config file has invalid syntax', async () => {
+      const badJsonPath = path.join(tempDir, 'broken.json');
+      fs.writeFileSync(badJsonPath, '{ invalid json: [', 'utf-8');
+
+      await expect(
+        loadConfig({
+          configFile: badJsonPath,
+          home: tempDir,
+          env: {},
+          argv: [],
+        }),
+      ).rejects.toSatisfy(
+        (err: unknown) => err instanceof AirError && err.code === 'CONFIG_INVALID',
+      );
+    });
+
+    it('sets nested properties via CLI --set key=value', async () => {
+      const { config, provenance } = await loadConfigWithProvenance({
+        home: tempDir,
+        env: {},
+        argv: ['--set', 'logging.level=debug'],
+      });
+      expect(config.logging.level).toBe('debug');
+      expect(provenance['logging.level']?.source).toBe('cli');
+    });
   });
 });

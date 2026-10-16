@@ -102,6 +102,78 @@ describe('fs-safe jail operations', () => {
       (err: unknown) => isAirError(err) && err.code === 'PATH_ESCAPE',
     );
 
+    await expect(readBufferIn(rootJail, escapePath)).rejects.toSatisfy(
+      (err: unknown) => isAirError(err) && err.code === 'PATH_ESCAPE',
+    );
+
+    await expect(statIn(rootJail, escapePath)).rejects.toSatisfy(
+      (err: unknown) => isAirError(err) && err.code === 'PATH_ESCAPE',
+    );
+
+    await expect(listIn(rootJail, escapePath)).rejects.toSatisfy(
+      (err: unknown) => isAirError(err) && err.code === 'PATH_ESCAPE',
+    );
+
+    await expect(removeIn(rootJail, escapePath)).rejects.toSatisfy(
+      (err: unknown) => isAirError(err) && err.code === 'PATH_ESCAPE',
+    );
+
+    await expect(mkdirIn(rootJail, escapePath)).rejects.toSatisfy(
+      (err: unknown) => isAirError(err) && err.code === 'PATH_ESCAPE',
+    );
+
     expect(await existsIn(rootJail, escapePath)).toBe(false);
+  });
+
+  it('throws NOT_FOUND when reading buffer or stat on non-existent file', async () => {
+    await expect(readBufferIn(rootJail, 'missing_bin.bin')).rejects.toSatisfy(
+      (err: unknown) => isAirError(err) && err.code === 'NOT_FOUND',
+    );
+
+    await expect(statIn(rootJail, 'missing_file.txt')).rejects.toSatisfy(
+      (err: unknown) => isAirError(err) && err.code === 'NOT_FOUND',
+    );
+
+    await expect(listIn(rootJail, 'missing_dir')).rejects.toSatisfy(
+      (err: unknown) => isAirError(err) && err.code === 'NOT_FOUND',
+    );
+  });
+
+  it('handles recursive removal and existing directory creation', async () => {
+    await mkdirIn(rootJail, 'folder/nested');
+    await mkdirIn(rootJail, 'folder/nested'); // idempotent directory creation
+    await writeFileAtomicIn(rootJail, 'folder/nested/item.txt', 'data');
+
+    await removeIn(rootJail, 'folder');
+    expect(await existsIn(rootJail, 'folder')).toBe(false);
+  });
+
+  it('supports operations with absolute paths inside jail', async () => {
+    const absPath = path.join(rootJail, 'abs_file.txt');
+    await writeFileAtomicIn(rootJail, absPath, 'absolute content');
+
+    expect(await existsIn(rootJail, absPath)).toBe(true);
+    expect(await readFileIn(rootJail, absPath)).toBe('absolute content');
+    const buf = await readBufferIn(rootJail, absPath);
+    expect(buf.toString('utf-8')).toBe('absolute content');
+  });
+
+  it('throws TOOL_EXECUTION_FAILED on incompatible operations', async () => {
+    await mkdirIn(rootJail, 'a_directory');
+    // Reading directory as file
+    await expect(readFileIn(rootJail, 'a_directory')).rejects.toSatisfy(
+      (err: unknown) => isAirError(err) && (err.code === 'TOOL_EXECUTION_FAILED' || err.code === 'PERMISSION_DENIED'),
+    );
+
+    // Reading buffer on directory
+    await expect(readBufferIn(rootJail, 'a_directory')).rejects.toSatisfy(
+      (err: unknown) => isAirError(err) && (err.code === 'TOOL_EXECUTION_FAILED' || err.code === 'PERMISSION_DENIED'),
+    );
+
+    // Listing file as directory
+    await writeFileAtomicIn(rootJail, 'not_a_dir.txt', 'content');
+    await expect(listIn(rootJail, 'not_a_dir.txt')).rejects.toSatisfy(
+      (err: unknown) => isAirError(err) && err.code === 'TOOL_EXECUTION_FAILED',
+    );
   });
 });
