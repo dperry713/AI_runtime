@@ -514,6 +514,14 @@ export class EventBus {
   }
 
   /**
+   * Waits for all active subscribers to finish processing enqueued events.
+   */
+  public async drain(): Promise<void> {
+    const drainPromises = Array.from(this.subscribers.values()).map((sub) => sub.drain());
+    await Promise.all(drainPromises);
+  }
+
+  /**
    * Closes the event bus. If drain is true, awaits drain of all subscribers before closing.
    */
   public async close(drain = true): Promise<void> {
@@ -521,8 +529,7 @@ export class EventBus {
     this.closed = true;
 
     if (drain) {
-      const drainPromises = Array.from(this.subscribers.values()).map((sub) => sub.drain());
-      await Promise.all(drainPromises);
+      await this.drain();
     }
 
     for (const sub of Array.from(this.subscribers.values())) {

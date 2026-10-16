@@ -6,8 +6,8 @@ last_updated: 2026-10-16
 current_phase: P2
 current_phase_name: Journal & event bus
 overall_tasks_total: 94
-overall_tasks_done: 23
-overall_progress_pct: 24
+overall_tasks_done: 24
+overall_progress_pct: 26
 repo_path: C:\Users\d\OneDrive\Desktop\AI_runtime
 runtime_home_default: "%LOCALAPPDATA%\\AIR"
 last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after each `npm run check`
@@ -24,17 +24,17 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 | Item | Value |
 |---|---|
 | Current phase | **P2 — Journal & event bus** |
-| Phase progress | Phase 2: 5 / 7 tasks done |
-| Overall | 23 / 94 tasks done (Phase 0 complete + Phase 1 complete + P2-T01 + P2-T02 + P2-T03 + P2-T04 + P2-T05 + planner protocol) |
-| Last `npm run check` | PASS (2026-10-16) — typecheck, lint, deps:check, 349 unit tests green |
-| Coverage gate | PASS (2026-10-16) — 95.06% stmts, 85.4% branches, 97.85% funcs, 95.76% lines; `src/journal/**` 98.82% lines, 90.6% branches, 98.8% funcs, 97.97% stmts; `util/paths` 98.71% stmts, 92.53% branches |
+| Phase progress | Phase 2: 6 / 7 tasks done |
+| Overall | 24 / 94 tasks done (Phase 0 complete + Phase 1 complete + P2-T01 + P2-T02 + P2-T03 + P2-T04 + P2-T05 + P2-T06 + planner protocol) |
+| Last `npm run check` | PASS (2026-10-16) — typecheck, lint, deps:check, 365 unit tests green (+ 3 chaos tests green) |
+| Coverage gate | PASS (2026-10-16) — 95.22% stmts, 85.49% branches, 97.46% funcs, 96.07% lines; `src/journal/**` 97.79% lines, 90.10% branches, 97.79% funcs, 98.94% stmts; `util/paths` 98.71% stmts, 92.53% branches |
 | Known blockers | None |
 
 ## 2. NEXT UP (ordered — take the first unblocked item)
 
-1. **P2-T06** — Crash recovery: torn-write detection, WAL recovery, reconciliation of index vs segment files (`src/journal/recovery.ts`).
-2. **P2-T07** — Upcasters framework: stub + test with synthetic v1→v2 (`src/journal/upcasters.ts`).
-3. **P3-T01** — Provider interface & normalized types (`src/providers/types.ts`).
+1. **P2-T07** — Upcasters framework: stub + test with synthetic v1→v2 (`src/journal/upcasters.ts`).
+2. **P3-T01** — Provider interface & normalized types (`src/providers/types.ts`).
+3. **P3-T02** — Mock/scripted provider (`src/providers/mock.ts`).
 
 ## 3. Blockers / human actions required
 
@@ -77,7 +77,7 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 | P2-T03 | SQLite index + migrations | DONE | `src/journal/migrations.ts`, `src/journal/index-store.ts`, `tests/unit/journal/index-store.test.ts`: better-sqlite3 with WAL, configurable synchronous pragma (`FULL`/`NORMAL`/`OFF`), tables `streams`, `events`, `runs`, `sessions`, `_migrations`. Transactional atomic migrations up/down with rollback, index batching inside single tx, lifecycle projections for runs/sessions/streams, determinism via injected clock. 28 unit tests pass (99.04% lines, 92.12% branches, 99.03% funcs). |
 | P2-T04 | Typed event bus | DONE | `src/journal/event-bus.ts`, `tests/unit/journal/event-bus.test.ts`: in-process pub/sub, per-subscriber bounded FIFO queues with backpressure drop policies (`drop-oldest`, `drop-newest`, `error`), subscription filters (exact/regex stream, streamPrefix, wildcard types, runId/sessionId, custom predicate), `waitFor` helper with timeouts, graceful drain lifecycle on shutdown, subscriber error isolation, metrics integration (counters for published/delivered/dropped/errors, gauges for active subs and queue depth). 22 unit tests pass (99.13% lines, 91.76% branches, 99.25% funcs). |
 | P2-T05 | Reader & replay engine | DONE | `src/journal/reader.ts`, `src/journal/replay.ts`, `tests/unit/journal/replay.test.ts`: Point lookups by EventId or (stream, seq) via IndexStore or direct segment scan; exact byte-slice reading (`readEventAt`) with CRC-32 verification; range queries/async streaming (`readStream`, `readStreamIter`) with fromSeq/toSeq/limit/order; pure folding `State = fold(events)` (`foldEvents`); pluggable snapshot stores (`MemorySnapshotStore`, `FileSnapshotStore`); snapshotting every N events; run lifecycle projection (`reduceRunState`); property-based replay equivalence test `fold(replay(events)) == live projection`. 12 unit tests pass (100% lines in replay, 95.04% in reader). |
-| P2-T06 | Crash recovery | TODO | |
+| P2-T06 | Crash recovery | DONE | `src/journal/recovery.ts`, `tests/unit/journal/recovery.test.ts`, `tests/chaos/journal-recovery.test.ts`: Torn-write detection and truncation to last valid line (`inspectSegmentFile`, `repairSegmentFile`), mid-file corruption detection with line number and quarantine, emission of `system.recovered` and `system.quarantine` events via event bus, full SQLite index rebuild from segment files (`rebuildIndex`) with batching, index reconciliation against disk truth (`reconcileIndex`), and crash recovery runner (`recoverJournal`). 16 unit tests and 3 chaos tests pass (100% lines in recovery.ts, 90.10% branch coverage across journal module). |
 | P2-T07 | Upcasters framework | TODO | |
 
 ### Phase 3 — Provider layer
@@ -261,6 +261,12 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 - **Status changes:** P1-T02 TODO→DONE; overall progress 10/94.
 - **Next agent should:** Proceed to P1-T03 (Determinism abstractions: `src/util` — `Clock`, `Random`, `IdGenerator`, `sleep`, `backoff`).
 - **Open questions:** (1) Which providers to prioritize live-testing first (Anthropic vs local Ollama/LM Studio)? (2) Is the Rust toolchain acceptable for the sandbox helper (P7-T02)? (3) Enable Windows long paths (`LongPathsEnabled=1`)?
+
+### 2026-10-16 — Antigravity Engineering Agent — session 20
+- **Did:** Implemented P2-T06 (Crash recovery). Built `src/journal/recovery.ts` and re-exported types from `src/journal/index.ts`: (1) `inspectSegmentFile`: scans segment lines, detects torn tails at EOF (incomplete framing, missing newline, corrupt trailing CRC) vs mid-segment corruption (bad CRC or corrupted JSON prior to valid lines) with line number and byte offset tracking. (2) `repairSegmentFile`: truncates torn tails safely via `fs.promises.truncate`, or quarantines mid-file corrupted segments into `.quarantine/` with unique timestamped filenames. (3) `rebuildIndex`: completely re-populates the SQLite `IndexStore` from on-disk segment files, re-establishing all stream sequence counters, events, and run/session lifecycle projections. (4) `reconcileIndex`: synchronizes SQLite index with segment files, catching up unindexed trailing events and pruning orphaned index rows after tail truncation. (5) `recoverJournal`: high-level crash recovery orchestrator scanning journal directories, performing repairs/quarantine, emitting `system.recovered` and `system.quarantine` events via `EventBus`, and rebuilding or reconciling the index. (6) Enhanced `IndexStore.clear()` and `EventBus.drain()`. (7) Added 16 unit tests in `tests/unit/journal/recovery.test.ts` and 3 chaos tests in `tests/chaos/journal-recovery.test.ts` verifying torn-write resilience across random cut points and bit flips. Total unit test suite reached 365 tests across 23 files (+ 3 chaos tests).
+- **Evidence:** `npm run check` PASS (typecheck clean, ESLint clean, depcruise 0 violations across 68 modules, 365 unit tests green). `npm run test:chaos` PASS (3/3 chaos tests green). `npm run test:coverage` PASS (statements: 95.22%, branches: 85.49%, functions: 97.46%, lines: 96.07%; `src/journal/**`: 97.79% lines, 90.10% branches, 97.79% functions, 98.94% statements; `src/util/paths.ts`: 98.71% statements, 92.53% branches).
+- **Status changes:** P2-T06 IN_PROGRESS→DONE; overall progress 24/94 (26%); Phase 2 progress 6/7.
+- **Next agent should:** Proceed to P2-T07 (Upcasters framework: stub + test with synthetic v1→v2 in `src/journal/upcasters.ts`).
 
 ### 2026-10-16 — Antigravity Engineering Agent — session 19
 - **Did:** Implemented P2-T05 (Reader & replay engine). Built `src/journal/reader.ts`, `src/journal/replay.ts`, and re-exported types from `src/journal/index.ts`: (1) `JournalReader`: point reads by `EventId` or `(stream, seq)` utilizing SQLite `IndexStore` or direct segment scanning; exact byte-slice reading (`readEventAt`) with CRC-32 verification on every slice; range queries and async streaming (`readStream`, `readStreamIter`) with `fromSeq`, `toSeq`, `limit`, and `order: 'asc' | 'desc'`. (2) `ReplayEngine`: pure synchronous folding `State = fold(events)` (`foldEvents`); pluggable snapshot store interface (`SnapshotStore`) with `MemorySnapshotStore` and atomic `FileSnapshotStore`; stream replay (`replayStream`) with automatic snapshot resumption and periodic snapshotting every $N$ events (`snapshotInterval`). (3) Run lifecycle projection: `RunStateProjection`, `reduceRunState`, and `createInitialRunState`. (4) Added 12 unit tests in `tests/unit/journal/replay.test.ts` including property-based replay equivalence: `fold(replay(events)) == live projection` across the full run lifecycle (start, turns, model/tool calls, pause/resume, completion, failure, cancellation). Total unit tests reached 349 across 22 suites.

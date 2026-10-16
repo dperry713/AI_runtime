@@ -326,6 +326,22 @@ export class IndexStore {
     return this.db;
   }
 
+  /**
+   * Clears all indexed events, runs, sessions, and streams.
+   * Preserves applied migrations table.
+   */
+  clear(): void {
+    if (this.closed) {
+      throw new AirError('INVALID_STATE', 'IndexStore is closed');
+    }
+    this.db.transaction(() => {
+      this.db.prepare('DELETE FROM events').run();
+      this.db.prepare('DELETE FROM runs').run();
+      this.db.prepare('DELETE FROM sessions').run();
+      this.db.prepare('DELETE FROM streams').run();
+    })();
+  }
+
   // ==========================================================================
   // Event Indexing
   // ==========================================================================

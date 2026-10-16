@@ -154,4 +154,20 @@ export {
   replayStream,
 } from './replay.js';
 
+export {
+  type SegmentInspectionReport,
+  type RepairAction,
+  type SegmentRepairResult,
+  type RebuildIndexResult,
+  type ReconcileResult,
+  type RecoveryOptions,
+  type RecoveryReport,
+  inspectSegmentFile,
+  repairSegmentFile,
+  rebuildIndex,
+  reconcileIndex,
+  recoverJournal,
+} from './recovery.js';
+
+
 
