@@ -24,16 +24,16 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 | Item | Value |
 |---|---|
 | Current phase | **P1 — Core types, errors, config, logging** |
-| Phase progress | 5 / 10 tasks done |
-| Overall | 13 / 94 tasks done (scaffolding + branded IDs + error taxonomy + determinism abstractions + Windows path & fs-safe + config system + planner protocol) |
-| Last `npm run check` | PASS (2026-10-16) — typecheck, lint, deps:check, 164 unit tests green |
+| Phase progress | 6 / 10 tasks done |
+| Overall | 14 / 94 tasks done (scaffolding + branded IDs + error taxonomy + determinism abstractions + Windows path & fs-safe + config system + observability logger + planner protocol) |
+| Last `npm run check` | PASS (2026-10-16) — typecheck, lint, deps:check, 178 unit tests green |
 | Known blockers | None |
 
 ## 2. NEXT UP (ordered — take the first unblocked item)
 
-1. **P1-T06** — Logger: `src/observability` — pino JSONL, streams, rotation, correlation, redaction.
-2. **P1-T07** — Audit hash chain: append-only hash chain, writer + `verify()`.
-3. **P1-T08** — Metrics: counters/gauges/histograms, snapshot to `metrics.jsonl`.
+1. **P1-T07** — Audit hash chain: append-only hash chain, writer + `verify()`.
+2. **P1-T08** — Metrics: counters/gauges/histograms, snapshot to `metrics.jsonl`.
+3. **P1-T09** — Secrets: Credential Manager adapter + in-memory fake + redaction registry.
 
 ## 3. Blockers / human actions required
 
@@ -62,7 +62,7 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 | P1-T03 | Determinism abstractions (Clock/Random/Id/backoff) | DONE | `src/util`: `Clock` (SystemClock, FakeClock), `Random` (SystemRandom, SeededRandom), `IdGenerator` (UlidIdGenerator, FakeIdGenerator), `sleep(abortable)`, `backoff` (full jitter). 32 unit tests pass. |
 | P1-T04 | Windows path library + fs-safe | DONE | `src/util/paths.ts` + `src/util/fs-safe.ts`: canonicalization, `isInside`, `assertInside` with realpath/junction handling, DOS device/ADS/UNC defenses, atomic writes, EBUSY retries. Fixed destructive test in `depcruise-violation.test.ts`. 29 unit tests pass. |
 | P1-T05 | Config system | DONE | `src/config`: Zod schema (`AirConfigSchema`), `AIR_HOME` resolution (`%LOCALAPPDATA%\AIR`), versioned migrator (`migrateConfig`), provenance-aware `explainConfig`, layered loader (`loadConfig`). 20 unit tests pass. |
-| P1-T06 | Logger (pino, streams, rotation, correlation, redaction) | TODO | |
+| P1-T06 | Logger (pino, streams, rotation, correlation, redaction) | DONE | `src/observability`: JSONL multi-streams (runtime, audit, llm, tools), `AsyncLocalStorage` correlation context, redaction engine (exact, base64, URL, JSON, regex), file rotation with audit preservation, 14 unit tests pass. |
 | P1-T07 | Audit hash chain | TODO | |
 | P1-T08 | Metrics | TODO | |
 | P1-T09 | Secrets (Credential Manager + redaction registry) | TODO | |
@@ -200,12 +200,20 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 
 ## 6. Session log (newest first; append an entry every session)
 
+### 2026-10-16 — Antigravity agent — session 10
+- **Did:**
+  1. Addressed user directives: (a) Added 'nvidia' as a first-class provider type in `src/config/schema.ts`, prioritizing NVIDIA NIM / endpoints; (b) Confirmed Rust toolchain approval for sandbox helper (P7-T02); (c) Checked `LongPathsEnabled` in registry.
+  2. Completed P1-T06 (Observability logger). Created `src/observability/redaction.ts` (Rule R4 redaction engine with registered secrets, regex patterns for Bearer/sk-/nvapi-/private keys, and sensitive key filtering), `src/observability/context.ts` (`AsyncLocalStorage` correlation context injecting runId, sessionId, turnId, toolCallId, traceId, spanId), `src/observability/rotation.ts` (`RotatingFileStream` with direct synchronous file writing, size-based rotation, and non-audit disk budget enforcement), `src/observability/streams.ts` (`StreamDispatcher` routing across `runtime.log`, `audit.log`, `llm.log`, `tools.log`, plus `MemoryLogSink` for tests), and `src/observability/logger.ts` (`getLogger`, `ComponentLogger` with per-component level overrides, child bindings, and data capping). Added 14 unit tests in `tests/unit/observability/logger.test.ts`. `npm run check` PASS (typecheck, lint, deps:check, 178 unit tests green across 14 test suites).
+- **Evidence:** `npm run check` output shows all stages passed; 14 new unit tests in `tests/unit/observability/logger.test.ts`.
+- **Status changes:** P1-T06 IN_PROGRESS→DONE; overall progress 14/94 (6/10 in Phase 1).
+- **Next agent should:** Proceed to P1-T07 (Audit hash chain: append-only hash chain, writer + `verify()`).
+- **Open questions:** None (all 3 standing questions resolved by user).
+
 ### 2026-10-16 — Antigravity agent — session 9
 - **Did:** Completed P1-T05 (Config system). Created `src/config/schema.ts` (`AirConfigSchema` and sub-schemas with typed defaults for Zod v4 compatibility), `src/config/home.ts` (`resolveAirHome` resolving `%LOCALAPPDATA%\AIR` per Rule R10), `src/config/migrate.ts` (`migrateConfig` versioned migrator supporting v0->v1), `src/config/explain.ts` (`explainConfig` with provenance tracing), and `src/config/loader.ts` (`loadConfig` enforcing precedence: defaults < file < env < CLI, supporting JSON/YAML and `--set` overrides). Added 20 unit tests in `tests/unit/config/config.test.ts`. `npm run check` PASS (typecheck, lint, deps:check, 164 unit tests green across 13 test suites).
 - **Evidence:** `npm run check` output shows all stages passed; 20 new unit tests in `tests/unit/config/config.test.ts`.
 - **Status changes:** P1-T05 IN_PROGRESS→DONE; overall progress 13/94 (5/10 in Phase 1).
 - **Next agent should:** Proceed to P1-T06 (Logger: `src/observability` — pino JSONL, streams, rotation, correlation, redaction).
-- **Open questions:** (1) Which providers to prioritize live-testing first (Anthropic vs local Ollama/LM Studio)? (2) Is the Rust toolchain acceptable for the sandbox helper (P7-T02)? (3) Enable Windows long paths (`LongPathsEnabled=1`)?
 
 ### 2026-10-16 — Antigravity agent — session 8
 - **Did:** Completed P1-T04 (Windows path library + fs-safe). Created `src/util/paths.ts` (`canonicalize`, `isInside`, `assertInside`, `rejectUnsafeName`, `validatePathSyntax`, DOS device and ADS defenses) and `src/util/fs-safe.ts` (`readFileIn`, `readBufferIn`, `writeFileAtomicIn`, `listIn`, `mkdirIn`, `removeIn`, `existsIn`, `statIn`, EBUSY/EPERM retries). Discovered and fixed a destructive bug in `tests/unit/depcruise-violation.test.ts` where it previously deleted `src/util/paths.ts`. Added 29 unit and property-based tests (21 in `paths.test.ts`, 8 in `fs-safe.test.ts`). `npm run check` PASS (typecheck, lint, deps:check, 144 unit tests green).

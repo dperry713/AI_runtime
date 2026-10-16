@@ -21,7 +21,7 @@ export const LoggingConfigSchema = z.object({
 });
 export type LoggingConfig = z.infer<typeof LoggingConfigSchema>;
 
-export const ProviderTypeSchema = z.enum(['anthropic', 'openai-compat', 'ollama', 'mock']);
+export const ProviderTypeSchema = z.enum(['anthropic', 'openai-compat', 'ollama', 'nvidia', 'mock']);
 export type ProviderType = z.infer<typeof ProviderTypeSchema>;
 
 export const ProviderConfigSchema = z.object({
