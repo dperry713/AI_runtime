@@ -24,16 +24,16 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 | Item | Value |
 |---|---|
 | Current phase | **P1 — Core types, errors, config, logging** |
-| Phase progress | 7 / 10 tasks done |
-| Overall | 15 / 94 tasks done (scaffolding + branded IDs + error taxonomy + determinism abstractions + Windows path & fs-safe + config system + observability logger + audit hash chain + planner protocol) |
-| Last `npm run check` | PASS (2026-10-16) — typecheck, lint, deps:check, 192 unit tests green |
+| Phase progress | 8 / 10 tasks done |
+| Overall | 16 / 94 tasks done (scaffolding + branded IDs + error taxonomy + determinism abstractions + Windows path & fs-safe + config system + observability logger + audit hash chain + metrics + planner protocol) |
+| Last `npm run check` | PASS (2026-10-16) — typecheck, lint, deps:check, 204 unit tests green |
 | Known blockers | None |
 
 ## 2. NEXT UP (ordered — take the first unblocked item)
 
-1. **P1-T08** — Metrics: counters/gauges/histograms, snapshot to `metrics.jsonl`.
-2. **P1-T09** — Secrets: Credential Manager adapter + in-memory fake + redaction registry.
-3. **P1-T10** — Coverage gate: thresholds enforced in `vitest.config.ts`.
+1. **P1-T09** — Secrets: Credential Manager adapter + in-memory fake + redaction registry.
+2. **P1-T10** — Coverage gate: thresholds enforced in `vitest.config.ts`.
+3. **Phase 2 Gate** — Journal & event bus.
 
 ## 3. Blockers / human actions required
 
@@ -64,7 +64,7 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 | P1-T05 | Config system | DONE | `src/config`: Zod schema (`AirConfigSchema`), `AIR_HOME` resolution (`%LOCALAPPDATA%\AIR`), versioned migrator (`migrateConfig`), provenance-aware `explainConfig`, layered loader (`loadConfig`). 20 unit tests pass. |
 | P1-T06 | Logger (pino, streams, rotation, correlation, redaction) | DONE | `src/observability`: JSONL multi-streams (runtime, audit, llm, tools), `AsyncLocalStorage` correlation context, redaction engine (exact, base64, URL, JSON, regex), file rotation with audit preservation, 14 unit tests pass. |
 | P1-T07 | Audit hash chain | DONE | `src/observability/audit.ts`: append-only hash chain (`sha256(prev || canonical-json)`), `AuditLog`, `verifyAuditChain`, `canonicalJson`, tamper detection tests. 14 unit tests pass. |
-| P1-T08 | Metrics | TODO | |
+| P1-T08 | Metrics | DONE | `src/observability/metrics.ts`: counters, gauges, histograms, snapshot API, rotating `metrics.jsonl` persistence, standard catalogue. 12 unit tests pass. |
 | P1-T09 | Secrets (Credential Manager + redaction registry) | TODO | |
 | P1-T10 | Coverage gate | TODO | |
 
@@ -199,6 +199,13 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 | 2026-10-15 | npm (not pnpm) for zero extra setup; dependency versions pinned at first install by bootstrap (lockfile committed) | — |
 
 ## 6. Session log (newest first; append an entry every session)
+
+### 2026-10-16 — Antigravity agent — session 12
+- **Did:** Completed P1-T08 (Metrics). Created `src/observability/metrics.ts` implementing `Counter`, `Gauge`, and `Histogram` (with quantile calculations: min, max, avg, p50, p90, p99), metric label isolation (`name{k="v"}`), standard metric catalogue (per `docs/LOGGING.md` §7: `runs_total`, `turns_total`, `tool_calls_total`, `policy_decisions_total`, `provider_requests_total`, `tokens_total`, `cost_usd_total`, `errors_total`, `journal_events_total`, histograms, and gauges), `snapshot()` API, and `writeMetricsSnapshot` / `startPeriodicMetricsSnapshot` writing rotating JSONL snapshots to `metrics.jsonl`. Added 12 unit tests in `tests/unit/observability/metrics.test.ts`. `npm run check` PASS (typecheck, lint, deps:check, 204 unit tests green across 16 test suites).
+- **Evidence:** `npm run check` output shows all stages passed; 12 new unit tests in `tests/unit/observability/metrics.test.ts`.
+- **Status changes:** P1-T08 IN_PROGRESS→DONE; overall progress 16/94 (8/10 in Phase 1).
+- **Next agent should:** Proceed to P1-T09 (Secrets: Credential Manager adapter + in-memory fake + redaction registry).
+- **Open questions:** None.
 
 ### 2026-10-16 — Antigravity agent — session 11
 - **Did:** Completed P1-T07 (Audit hash chain). Created `src/observability/audit.ts` implementing `canonicalJson` (deterministic key-sorted serializer), `computeAuditHash` (`sha256(prev || canonicalJson(recordWithoutHash))`), `AuditLog` (append-only chained writer with sequence continuity, head recovery on reopen, and `chain.seal`), and `verifyAuditChain` (streamed hash chain verifier detecting broken sequence, corrupted prev pointer, payload tampering, corrupted JSON, and missing fields). Added 14 unit and tamper tests in `tests/unit/observability/audit.test.ts`. `npm run check` PASS (typecheck, lint, deps:check, 192 unit tests green across 15 test suites).
