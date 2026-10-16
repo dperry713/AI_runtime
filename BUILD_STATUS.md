@@ -24,16 +24,16 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 | Item | Value |
 |---|---|
 | Current phase | **P1 — Core types, errors, config, logging** |
-| Phase progress | 6 / 10 tasks done |
-| Overall | 14 / 94 tasks done (scaffolding + branded IDs + error taxonomy + determinism abstractions + Windows path & fs-safe + config system + observability logger + planner protocol) |
-| Last `npm run check` | PASS (2026-10-16) — typecheck, lint, deps:check, 178 unit tests green |
+| Phase progress | 7 / 10 tasks done |
+| Overall | 15 / 94 tasks done (scaffolding + branded IDs + error taxonomy + determinism abstractions + Windows path & fs-safe + config system + observability logger + audit hash chain + planner protocol) |
+| Last `npm run check` | PASS (2026-10-16) — typecheck, lint, deps:check, 192 unit tests green |
 | Known blockers | None |
 
 ## 2. NEXT UP (ordered — take the first unblocked item)
 
-1. **P1-T07** — Audit hash chain: append-only hash chain, writer + `verify()`.
-2. **P1-T08** — Metrics: counters/gauges/histograms, snapshot to `metrics.jsonl`.
-3. **P1-T09** — Secrets: Credential Manager adapter + in-memory fake + redaction registry.
+1. **P1-T08** — Metrics: counters/gauges/histograms, snapshot to `metrics.jsonl`.
+2. **P1-T09** — Secrets: Credential Manager adapter + in-memory fake + redaction registry.
+3. **P1-T10** — Coverage gate: thresholds enforced in `vitest.config.ts`.
 
 ## 3. Blockers / human actions required
 
@@ -63,7 +63,7 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 | P1-T04 | Windows path library + fs-safe | DONE | `src/util/paths.ts` + `src/util/fs-safe.ts`: canonicalization, `isInside`, `assertInside` with realpath/junction handling, DOS device/ADS/UNC defenses, atomic writes, EBUSY retries. Fixed destructive test in `depcruise-violation.test.ts`. 29 unit tests pass. |
 | P1-T05 | Config system | DONE | `src/config`: Zod schema (`AirConfigSchema`), `AIR_HOME` resolution (`%LOCALAPPDATA%\AIR`), versioned migrator (`migrateConfig`), provenance-aware `explainConfig`, layered loader (`loadConfig`). 20 unit tests pass. |
 | P1-T06 | Logger (pino, streams, rotation, correlation, redaction) | DONE | `src/observability`: JSONL multi-streams (runtime, audit, llm, tools), `AsyncLocalStorage` correlation context, redaction engine (exact, base64, URL, JSON, regex), file rotation with audit preservation, 14 unit tests pass. |
-| P1-T07 | Audit hash chain | TODO | |
+| P1-T07 | Audit hash chain | DONE | `src/observability/audit.ts`: append-only hash chain (`sha256(prev || canonical-json)`), `AuditLog`, `verifyAuditChain`, `canonicalJson`, tamper detection tests. 14 unit tests pass. |
 | P1-T08 | Metrics | TODO | |
 | P1-T09 | Secrets (Credential Manager + redaction registry) | TODO | |
 | P1-T10 | Coverage gate | TODO | |
@@ -199,6 +199,13 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 | 2026-10-15 | npm (not pnpm) for zero extra setup; dependency versions pinned at first install by bootstrap (lockfile committed) | — |
 
 ## 6. Session log (newest first; append an entry every session)
+
+### 2026-10-16 — Antigravity agent — session 11
+- **Did:** Completed P1-T07 (Audit hash chain). Created `src/observability/audit.ts` implementing `canonicalJson` (deterministic key-sorted serializer), `computeAuditHash` (`sha256(prev || canonicalJson(recordWithoutHash))`), `AuditLog` (append-only chained writer with sequence continuity, head recovery on reopen, and `chain.seal`), and `verifyAuditChain` (streamed hash chain verifier detecting broken sequence, corrupted prev pointer, payload tampering, corrupted JSON, and missing fields). Added 14 unit and tamper tests in `tests/unit/observability/audit.test.ts`. `npm run check` PASS (typecheck, lint, deps:check, 192 unit tests green across 15 test suites).
+- **Evidence:** `npm run check` output shows all stages passed; 14 new unit tests in `tests/unit/observability/audit.test.ts`.
+- **Status changes:** P1-T07 IN_PROGRESS→DONE; overall progress 15/94 (7/10 in Phase 1).
+- **Next agent should:** Proceed to P1-T08 (Metrics: counters/gauges/histograms, snapshot to `metrics.jsonl`).
+- **Open questions:** None.
 
 ### 2026-10-16 — Antigravity agent — session 10
 - **Did:**

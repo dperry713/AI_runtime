@@ -36,3 +36,15 @@ export {
   resetLogging,
   flushLogs,
 } from './logger.js';
+
+export {
+  GENESIS_HASH,
+  type AuditRecord,
+  type AuditVerificationSuccess,
+  type AuditVerificationFailure,
+  type AuditVerificationResult,
+  canonicalJson,
+  computeAuditHash,
+  AuditLog,
+  verifyAuditChain,
+} from './audit.js';
