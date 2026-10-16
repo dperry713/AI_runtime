@@ -3,11 +3,11 @@ project: AI_runtime
 codename: AIR
 status_schema: 1
 last_updated: 2026-10-16
-current_phase: P1
-current_phase_name: Core types, errors, config, logging
+current_phase: P2
+current_phase_name: Journal & event bus
 overall_tasks_total: 94
-overall_tasks_done: 18
-overall_progress_pct: 19
+overall_tasks_done: 19
+overall_progress_pct: 20
 repo_path: C:\Users\d\OneDrive\Desktop\AI_runtime
 runtime_home_default: "%LOCALAPPDATA%\\AIR"
 last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after each `npm run check`
@@ -23,18 +23,18 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 
 | Item | Value |
 |---|---|
-| Current phase | **P2 — Journal & event bus (Phase 1 100% COMPLETE)** |
-| Phase progress | Phase 1: 10 / 10 tasks done (Exit Gate P1 PASSED); Phase 2: 0 / 7 tasks done |
-| Overall | 18 / 94 tasks done (Phase 0 complete + Phase 1 complete + planner protocol) |
-| Last `npm run check` | PASS (2026-10-16) — typecheck, lint, deps:check, 235 unit tests green |
-| Coverage gate | PASS (2026-10-16) — 92.74% stmts, 80.26% branches, 97.23% funcs, 93.4% lines; `util/paths` 98.71% stmts, 92.53% branches |
+| Current phase | **P2 — Journal & event bus** |
+| Phase progress | Phase 2: 1 / 7 tasks done |
+| Overall | 19 / 94 tasks done (Phase 0 complete + Phase 1 complete + P2-T01 + planner protocol) |
+| Last `npm run check` | PASS (2026-10-16) — typecheck, lint, deps:check, 247 unit tests green |
+| Coverage gate | PASS (2026-10-16) — 93.09% stmts, 80.68% branches, 97.36% funcs, 93.72% lines; `src/journal/**` 100% lines, 95.45% branches; `util/paths` 98.71% stmts, 92.53% branches |
 | Known blockers | None |
 
 ## 2. NEXT UP (ordered — take the first unblocked item)
 
-1. **P2-T01** — Event envelope & registry: zod discriminated union, additive versioning rules in `docs/specs/events.md` (`src/journal/envelope.ts`, `src/journal/registry.ts`).
-2. **P2-T02** — JSONL segment writer: `<crc32> <json>\n`, single serialized queue per stream, fsync policy (`always|batch|never` config), segment rotation, atomic sealing.
-3. **P2-T03** — SQLite index + migrations: better-sqlite3, WAL, `PRAGMA synchronous=NORMAL/FULL` per config (`src/journal/index-store.ts`).
+1. **P2-T02** — JSONL segment writer: `<crc32> <json>\n`, single serialized queue per stream, fsync policy (`always|batch|never` config), segment rotation, atomic segment sealing (`src/journal/segment-writer.ts`).
+2. **P2-T03** — SQLite index + migrations: better-sqlite3, WAL, `PRAGMA synchronous=NORMAL/FULL` per config (`src/journal/index-store.ts`).
+3. **P2-T04** — Typed event bus: in-process pub/sub, per-subscriber bounded queues with backpressure/drop policy and metrics (`src/journal/event-bus.ts`).
 
 ## 3. Blockers / human actions required
 
@@ -72,7 +72,7 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 ### Phase 2 — Journal & event bus
 | ID | Task | Status | Notes |
 |---|---|---|---|
-| P2-T01 | Event envelope & registry | TODO | |
+| P2-T01 | Event envelope & registry | DONE | `src/journal/envelope.ts`, `src/journal/registry.ts`, `docs/specs/events.md`: Zod discriminated union (`AirEventEnvelopeSchema`), 34 lifecycle event schemas across run, turn, model, tool, memory, system categories. Additive versioning rules documented. Injected determinism (Clock + IdGenerator). 10 unit tests pass (100% coverage). |
 | P2-T02 | JSONL segment writer | TODO | |
 | P2-T03 | SQLite index + migrations | TODO | |
 | P2-T04 | Typed event bus | TODO | |
@@ -261,6 +261,12 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 - **Status changes:** P1-T02 TODO→DONE; overall progress 10/94.
 - **Next agent should:** Proceed to P1-T03 (Determinism abstractions: `src/util` — `Clock`, `Random`, `IdGenerator`, `sleep`, `backoff`).
 - **Open questions:** (1) Which providers to prioritize live-testing first (Anthropic vs local Ollama/LM Studio)? (2) Is the Rust toolchain acceptable for the sandbox helper (P7-T02)? (3) Enable Windows long paths (`LongPathsEnabled=1`)?
+
+### 2026-10-16 — Antigravity Engineering Agent — session 15
+- **Did:** Addressed pre-Phase 2 directives: (1) Documented transitional secrets store in ADR-0005 (`docs/adr/0005-secrets-store-transitional-and-target.md`), `.agent/DECISIONS.md`, and code docstrings. (2) Expanded Windows path escape regression tests in `tests/unit/util/paths.test.ts` ($DATA streams, NT device paths, device names with extensions). (3) Completed P2-T01: drafted `docs/specs/events.md` with additive versioning rules; implemented `src/journal/envelope.ts` and `src/journal/registry.ts` with Zod discriminated union (`AirEventEnvelopeSchema`), 34 lifecycle event schemas, type guards, and deterministic factory (`createEnvelope`). Enforced strict determinism (no raw `Date.now()` or `Math.random()`). Added 10 unit tests in `tests/unit/journal/events.test.ts`. Total test suite reached 247 unit tests across 18 files. Added `src/journal/**` to `vitest.config.ts` critical thresholds (lines ≥ 95%, branches ≥ 90%).
+- **Evidence:** `npm run check` PASS (typecheck clean, ESLint clean, depcruise 0 violations across 58 modules, 247 unit tests green). `npm run test:coverage` PASS (statements: 93.09%, branches: 80.68%, functions: 97.36%, lines: 93.72%; `src/journal/**`: 100% lines, 95.45% branches; `src/util/paths.ts`: 98.71% lines, 92.53% branches).
+- **Status changes:** P2-T01 TODO→DONE; overall progress 19/94 (20%); Phase 2 progress 1/7.
+- **Next agent should:** Proceed to P2-T02 (JSONL segment writer: `<crc32> <json>\n`, single serialized queue per stream, fsync policy `always|batch|never`, segment rotation, atomic sealing in `src/journal/segment-writer.ts`).
 
 ### 2026-10-16 — Antigravity Engineering Agent — session 14
 - **Did:** Completed P1-T10 (Coverage gate & Exit Gate P1). Configured `vitest.config.ts` enforcing global thresholds (lines ≥ 85%, functions ≥ 85%, branches ≥ 80%, statements ≥ 85%) and critical module threshold (`src/util/paths.ts` lines ≥ 95%, branches ≥ 90%, functions ≥ 95%, statements ≥ 95%). Expanded unit test suites for `types/ids`, `util/fs-safe`, `util/clock`, `util/random`, `util/sleep`, `observability/logger`, `observability/metrics`, `secrets`, and `agent/planner` covering edge cases and error branches. Total suite reached 235 unit tests across 17 files.

@@ -32,6 +32,14 @@ interface EncryptedPayload {
  * Uses AES-256-GCM authenticated encryption bound to user profile / local machine.
  * All file operations route through safe filesystem jail per Rule R2.
  */
+/**
+ * Transitional encrypted-file SecretStore implementation (ADR-0005).
+ * Encrypts secrets on disk using authenticated AES-256-GCM routed strictly through fs-safe.
+ *
+ * NOTE: This is a transitional store satisfying Rule R4 and foundation phases.
+ * It will be replaced/enhanced with native Windows Credential Manager (CredReadW/CredWriteW)
+ * or DPAPI (CryptProtectData) before production secrets are used (scheduled for Phase 12).
+ */
 export class CredentialManagerStore implements SecretStore {
   private readonly vaultDir: string;
   private readonly derivedKey: Buffer;

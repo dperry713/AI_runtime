@@ -80,9 +80,24 @@ describe('validatePathSyntax', () => {
     expect(() => validatePathSyntax('//server/share/file.txt')).toThrow();
   });
 
-  it('rejects Alternate Data Streams (ADS)', () => {
+  it('rejects Alternate Data Streams (ADS) and $DATA streams', () => {
     expect(() => validatePathSyntax('C:\\dev\\file.txt:hidden')).toThrow();
     expect(() => validatePathSyntax('folder:stream')).toThrow();
+    expect(() => validatePathSyntax('C:\\dev\\file.txt::$DATA')).toThrow();
+  });
+
+  it('rejects NT namespace device and raw volume paths', () => {
+    expect(() => validatePathSyntax('\\\\.\\pipe\\air_test_pipe')).toThrow();
+    expect(() => validatePathSyntax('\\\\.\\PhysicalDrive0')).toThrow();
+    expect(() => validatePathSyntax('//./pipe/test')).toThrow();
+  });
+
+  it('rejects Windows reserved device names with arbitrary extensions', () => {
+    expect(() => rejectUnsafeName('aux.json')).toThrow();
+    expect(() => rejectUnsafeName('prn.txt')).toThrow();
+    expect(() => rejectUnsafeName('com1.dat')).toThrow();
+    expect(() => rejectUnsafeName('lpt9.log')).toThrow();
+    expect(() => rejectUnsafeName('con.2026.log')).toThrow();
   });
 
   it('allows valid absolute and relative Windows paths', () => {

@@ -13,9 +13,8 @@ export default defineConfig({
       exclude: [
         'src/**/index.ts',
         'src/secrets/store.ts',
-        // Future phases stubs not yet implemented (P2-P12)
+        // Future phases stubs not yet implemented (P3-P12)
         'src/ipc/**',
-        'src/journal/**',
         'src/kernel/**',
         'src/mcp/**',
         'src/memory/**',
@@ -34,6 +33,12 @@ export default defineConfig({
         statements: 85,
         // Critical module thresholds per docs/TESTING.md §4 and docs/BUILD_PLAN.md P1-T10
         'src/util/paths.ts': {
+          lines: 95,
+          branches: 90,
+          functions: 95,
+          statements: 95,
+        },
+        'src/journal/**': {
           lines: 95,
           branches: 90,
           functions: 95,
