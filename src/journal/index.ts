@@ -68,3 +68,52 @@ export {
   isMemoryEvent,
   isSystemEvent,
 } from './registry.js';
+
+export {
+  computeCrc32Hex,
+  formatEventLine,
+  type VerifyLineResult,
+  verifyLineChecksum,
+  type ParseLineResult,
+  parseEventLine,
+  sanitizeStream,
+  desanitizeStream,
+  type ParsedSegmentFileName,
+  parseSegmentFileName,
+  formatSegmentFileName,
+  type ReadSegmentEventsResult,
+  readSegmentEvents,
+  type SegmentAppendResult,
+  type StreamInfo,
+  type SegmentWriterOptions,
+  SegmentWriter,
+  StreamSegmentWriter,
+} from './segment-writer.js';
+
+export {
+  type Migration,
+  type AppliedMigration,
+  type MigrationResult,
+  migrationV1,
+  ALL_MIGRATIONS,
+  ensureMigrationsTable,
+  getCurrentMigrationVersion,
+  getAppliedMigrations,
+  type RunMigrationsOptions,
+  runMigrations,
+} from './migrations.js';
+
+export {
+  type EventLocation,
+  type IndexedEvent,
+  type StreamRecord,
+  type RunRecord,
+  type SessionRecord,
+  type IndexStats,
+  type StreamQueryOptions,
+  type RunQueryOptions,
+  type SessionQueryOptions,
+  type CreateSessionOptions,
+  type IndexStoreOptions,
+  IndexStore,
+} from './index-store.js';
