@@ -7,6 +7,8 @@ import { z } from 'zod';
 import type { EventId, RunId } from '../types/index.js';
 import { createEventId, createRunId, createToolCallId } from '../types/index.js';
 import { AirError } from '../errors/index.js';
+import type { Clock } from '../util/index.js';
+import { SystemClock } from '../util/index.js';
 
 // ---------------------------------------------------------------------------
 // Enums and Constants
@@ -146,20 +148,6 @@ export function normalizeStepProposal(raw: unknown): StepProposal {
     assumptions,
     confidence,
   });
-}
-
-// ---------------------------------------------------------------------------
-// Clock Abstraction (Rule R6: No raw Date.now())
-// ---------------------------------------------------------------------------
-
-export interface Clock {
-  iso(): string;
-}
-
-export class SystemClock implements Clock {
-  iso(): string {
-    return new Date().toISOString();
-  }
 }
 
 // ---------------------------------------------------------------------------

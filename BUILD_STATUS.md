@@ -24,16 +24,16 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 | Item | Value |
 |---|---|
 | Current phase | **P1 — Core types, errors, config, logging** |
-| Phase progress | 2 / 10 tasks done |
-| Overall | 10 / 94 tasks done (scaffolding + branded IDs + error taxonomy + planner protocol dual integration) |
-| Last `npm run check` | PASS (2026-10-16) — typecheck, lint, deps:check, 82 unit tests green |
+| Phase progress | 3 / 10 tasks done |
+| Overall | 11 / 94 tasks done (scaffolding + branded IDs + error taxonomy + determinism abstractions + planner protocol) |
+| Last `npm run check` | PASS (2026-10-16) — typecheck, lint, deps:check, 114 unit tests green |
 | Known blockers | None |
 
 ## 2. NEXT UP (ordered — take the first unblocked item)
 
-1. **P1-T02** — Error taxonomy: `src/errors` — `AirError`, code registry, `isRetryable`, `toModelSafeMessage`, serialization.
-2. **P1-T03** — Determinism abstractions: `src/util` — `Clock` (system + fake), `Random`, `IdGenerator`, `sleep(abortable)`, `backoff` (full jitter).
-3. **P1-T06** — Logger (pino, streams, rotation, correlation, redaction) before anything else that logs.
+1. **P1-T04** — Windows path library + fs-safe: `src/util/paths`, `fs-safe`: normalize, `isInside`, ADS/device name guards, 8.3 expansion, atomic writes.
+2. **P1-T05** — Config system: `src/config` — zod schema, layered loader, `AIR_HOME` resolution, `explain`.
+3. **P1-T06** — Logger: `src/observability` — pino JSONL, streams, rotation, correlation, redaction.
 
 ## 3. Blockers / human actions required
 
@@ -59,7 +59,7 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 |---|---|---|---|
 | P1-T01 | Branded IDs & core types | DONE | `src/types/ids.ts` + `src/types/schemas.ts`: `RunId, AgentId, SessionId, TurnId, ToolCallId, EventId` (ULID-backed), constructors, parse functions, zod schemas. 20 unit tests pass. |
 | P1-T02 | Error taxonomy | DONE | `src/errors/AirError.ts`: `AirError`, error codes, `isRetryable`, `toModelSafeMessage`, serialization. Fixed override & exactOptionalPropertyTypes compliance. 32 unit tests pass. |
-| P1-T03 | Determinism abstractions (Clock/Random/Id/backoff) | TODO | |
+| P1-T03 | Determinism abstractions (Clock/Random/Id/backoff) | DONE | `src/util`: `Clock` (SystemClock, FakeClock), `Random` (SystemRandom, SeededRandom), `IdGenerator` (UlidIdGenerator, FakeIdGenerator), `sleep(abortable)`, `backoff` (full jitter). 32 unit tests pass. |
 | P1-T04 | Windows path library + fs-safe | TODO | |
 | P1-T05 | Config system | TODO | |
 | P1-T06 | Logger (pino, streams, rotation, correlation, redaction) | TODO | |
@@ -199,6 +199,13 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 | 2026-10-15 | npm (not pnpm) for zero extra setup; dependency versions pinned at first install by bootstrap (lockfile committed) | — |
 
 ## 6. Session log (newest first; append an entry every session)
+
+### 2026-10-16 — Antigravity agent — session 7
+- **Did:** Completed P1-T03 (Determinism abstractions). Created `src/util/clock.ts` (`Clock`, `SystemClock`, `FakeClock`), `src/util/random.ts` (`Random`, `SystemRandom` using `node:crypto` avoiding `Math.random`, `SeededRandom` using Mulberry32 PRNG), `src/util/id.ts` (`IdGenerator`, `UlidIdGenerator`, `FakeIdGenerator`), `src/util/sleep.ts` (abortable sleep propagating typed `AirError`), and `src/util/backoff.ts` (Full Jitter exponential backoff). Added 32 unit tests across 5 test suites. Connected `src/agent/planner.ts` to consume `Clock` from `src/util`. `npm run check` PASS (typecheck, lint, deps:check, 114 unit tests green).
+- **Evidence:** `npm run check` output shows all stages passed; 32 new unit tests in `tests/unit/util/`.
+- **Status changes:** P1-T03 TODO→DONE; overall progress 11/94 (3/10 in Phase 1).
+- **Next agent should:** Proceed to P1-T04 (Windows path library + fs-safe: `src/util/paths`, `fs-safe`).
+- **Open questions:** (1) Which providers to prioritize live-testing first (Anthropic vs local Ollama/LM Studio)? (2) Is the Rust toolchain acceptable for the sandbox helper (P7-T02)? (3) Enable Windows long paths (`LongPathsEnabled=1`)?
 
 ### 2026-10-16 — Antigravity agent — session 6
 - **Did:**
