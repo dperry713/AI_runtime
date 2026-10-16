@@ -117,3 +117,18 @@ export {
   type IndexStoreOptions,
   IndexStore,
 } from './index-store.js';
+
+export {
+  type DropPolicy,
+  type EventFilterPredicate,
+  type EventSubscriptionFilter,
+  type SubscriptionOptions,
+  type SubscriptionStats,
+  type Subscription,
+  type EventHandler,
+  type EventBusOptions,
+  type EventBusStats,
+  matchesEventFilter,
+  EventBus,
+} from './event-bus.js';
+
