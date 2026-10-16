@@ -6,8 +6,8 @@ last_updated: 2026-10-16
 current_phase: P3
 current_phase_name: Provider layer
 overall_tasks_total: 94
-overall_tasks_done: 25
-overall_progress_pct: 27
+overall_tasks_done: 26
+overall_progress_pct: 28
 repo_path: C:\Users\d\OneDrive\Desktop\AI_runtime
 runtime_home_default: "%LOCALAPPDATA%\\AIR"
 last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after each `npm run check`
@@ -23,18 +23,18 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 
 | Item | Value |
 |---|---|
-| Current phase | **P3 — Provider layer** (Phase 2 complete) |
-| Phase progress | Phase 2: 7 / 7 tasks done (100%) |
-| Overall | 25 / 94 tasks done (Phase 0 complete + Phase 1 complete + Phase 2 complete + planner protocol) |
-| Last `npm run check` | PASS (2026-10-16) — typecheck, lint, deps:check, 397 unit tests green (+ 3 chaos tests green) |
-| Coverage gate | PASS (2026-10-16) — 95.42% stmts, 86.24% branches, 97.55% funcs, 96.24% lines; `src/journal/**` 99.03% lines, 90.88% branches, 97.96% funcs, 97.97% stmts; `util/paths` 98.71% stmts, 92.53% branches |
+| Current phase | **P3 — Provider layer** |
+| Phase progress | Phase 3: 1 / 9 tasks done |
+| Overall | 26 / 94 tasks done (Phase 0 complete + Phase 1 complete + Phase 2 complete + P3-T01 + planner protocol) |
+| Last `npm run check` | PASS (2026-10-16) — typecheck, lint, deps:check, 420 unit tests green (+ 3 chaos tests green) |
+| Coverage gate | PASS (2026-10-16) — 95.47% stmts, 86.19% branches, 97.40% funcs, 96.33% lines; `src/providers/types.ts` 98.92% lines, 84.44% branches; `src/journal/**` 99.03% lines, 90.88% branches; `util/paths` 98.71% stmts, 92.53% branches |
 | Known blockers | None |
 
 ## 2. NEXT UP (ordered — take the first unblocked item)
 
-1. **P3-T01** — Provider interface & normalized types (`src/providers/types.ts`).
-2. **P3-T02** — Mock/scripted provider (`src/providers/mock.ts`).
-3. **P3-T03** — Anthropic adapter (`src/providers/anthropic.ts`).
+1. **P3-T02** — Mock/scripted provider (`src/providers/mock.ts`).
+2. **P3-T03** — Anthropic adapter (`src/providers/anthropic.ts`).
+3. **P3-T04** — OpenAI-compatible adapter (`src/providers/openai.ts`).
 
 ## 3. Blockers / human actions required
 
@@ -83,7 +83,7 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 ### Phase 3 — Provider layer
 | ID | Task | Status | Notes |
 |---|---|---|---|
-| P3-T01 | Provider interface & normalized types | TODO | |
+| P3-T01 | Provider interface & normalized types | DONE | `src/providers/types.ts`, `tests/unit/providers/types.test.ts`: Universal `Provider` contract (`complete`, `stream`), `NormalizedRequest` / `NormalizedResponse`, discriminated message parts (`text`, `thinking`, `image`, `tool_call`, `tool_result`), `ProviderStreamEvent` union (`stream_start`, `text_delta`, `thinking_delta`, `tool_call_start`, `tool_call_delta`, `tool_call_end`, `usage`, `stream_end`, `error`), `TokenUsage`, `StopReason` enum, `ProviderCapabilities` flags, type guards, extraction helpers (`extractText`, `extractThinking`, `extractToolCalls`), and streaming response accumulator (`assembleStreamResponse`). 23 unit tests pass (98.92% lines, 84.44% branches in types.ts). |
 | P3-T02 | Mock/scripted provider | TODO | |
 | P3-T03 | Anthropic adapter | TODO | |
 | P3-T04 | OpenAI-compatible adapter | TODO | |
@@ -200,6 +200,12 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 | 2026-10-15 | npm (not pnpm) for zero extra setup; dependency versions pinned at first install by bootstrap (lockfile committed) | — |
 
 ## 6. Session log (newest first; append an entry every session)
+
+### 2026-10-16 — Antigravity Engineering Agent — session 22
+- **Did:** Completed P3-T01 (Provider interface & normalized types). Created `src/providers/types.ts` and re-exported from `src/providers/index.ts`: (1) Normalized message roles (`system`, `user`, `assistant`, `tool`). (2) Discriminated message parts: `TextPart`, `ThinkingPart` (preserving extended reasoning per planner protocol), `ImagePart`, `ToolCallPart` (object or stringified arguments), and `ToolResultPart` (with error flags). (3) `NormalizedMessage` and `NormalizedRequest` with parameters, stopSequences, thinking budget, and `ProviderToolDefinition`. (4) `TokenUsage` accounting and normalized `StopReason` enum (`stop`, `tool_calls`, `max_tokens`, `content_filter`, `cancelled`, `error`). (5) `NormalizedResponse` structure. (6) Universal streaming events (`ProviderStreamEvent`: `stream_start`, `text_delta`, `thinking_delta`, `tool_call_start`, `tool_call_delta`, `tool_call_end`, `usage`, `stream_end`, `error`). (7) Universal `Provider` interface and `ProviderCapabilities` flags. (8) Type guards and extraction utilities (`extractText`, `extractThinking`, `extractToolCalls`), and streaming accumulator (`assembleStreamResponse`). (9) Added 23 unit tests in `tests/unit/providers/types.test.ts`. Included `src/providers/**` in `vitest.config.ts` coverage tracking.
+- **Evidence:** `npm run check` PASS (typecheck clean, ESLint clean, depcruise 0 violations across 70 modules, 420 unit tests green). `npm run test:coverage` PASS (statements: 95.47%, branches: 86.19%, functions: 97.40%, lines: 96.33%; `src/providers/types.ts`: 98.92% lines, 84.44% branches, 91.66% functions; `src/journal/**`: 99.03% lines, 90.88% branches; `src/util/paths.ts`: 98.71% statements, 92.53% branches).
+- **Status changes:** P3-T01 IN_PROGRESS→DONE; overall progress 26/94 (28%); Phase 3 progress 1/9.
+- **Next agent should:** Proceed to P3-T02 (Mock/scripted provider: deterministic scripts, latency/error injection, usage simulation in `src/providers/mock.ts`).
 
 ### 2026-10-16 — Antigravity Engineering Agent — session 21
 - **Did:** Implemented P2-T07 (Upcasters framework) and satisfied Exit Gate P2. Built `src/journal/upcasters.ts` and re-exported types from `src/journal/index.ts`: (1) `Upcaster<TInput, TOutput>` interface, `createUpcaster`, pure functional upcasters, and `defaultVersionExtractor` inspecting `meta.schemaVersion`, `payload.schemaVersion`, `payload.version`, `payload.v`, defaulting to version 1. (2) `UpcasterRegistry`: stepwise chained migrations ($v1 \to v2 \to v3$), gap detection, cycle prevention, type safety, error isolation with `AirError('UPCASTER_FAILED')`, and batch / streaming execution (`upcastAll`, `upcastStream`). (3) Reference synthetic fixtures: `SyntheticV1Payload`, `SyntheticV2Payload`, `SyntheticV3Payload`, `syntheticV1ToV2Upcaster`, `syntheticV2ToV3Upcaster`. (4) Integrated `UpcasterRegistry` into `JournalReader` (point queries and range/iterator queries) and `ReplayEngine` (`foldEvents`, `replayStream`). (5) Added 32 unit tests in `tests/unit/journal/upcasters.test.ts`. Total test suite reached 397 unit tests across 24 files (+ 3 chaos tests). Exit Gate P2 fully satisfied: chaos suite green, replay equivalence green, index rebuild from segments green.

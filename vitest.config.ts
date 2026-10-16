@@ -19,7 +19,6 @@ export default defineConfig({
         'src/mcp/**',
         'src/memory/**',
         'src/policy/**',
-        'src/providers/**',
         'src/sandbox/**',
         'src/service/**',
         'src/shell/**',
