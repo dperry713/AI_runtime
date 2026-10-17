@@ -76,3 +76,30 @@ export {
   extractToolCalls,
   assembleStreamResponse,
 } from './types.js';
+
+export {
+  type MockScriptStep,
+  type MockResponseInput,
+  type MockCallRecord,
+  type MockProviderOptions,
+  MockProvider,
+} from './mock.js';
+
+export {
+  type ApiKeyResolver,
+  type AnthropicProviderOptions,
+  AnthropicProvider,
+  mapAnthropicHttpError,
+  parseSseStream,
+} from './anthropic.js';
+
+export {
+  type SseEvent,
+} from './sse.js';
+
+export {
+  type OpenAIProviderOptions,
+  OpenAIProvider,
+  mapOpenAiHttpError,
+} from './openai.js';
+

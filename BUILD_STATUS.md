@@ -2,15 +2,15 @@
 project: AI_runtime
 codename: AIR
 status_schema: 1
-last_updated: 2026-10-16
+last_updated: 2026-10-17
 current_phase: P3
 current_phase_name: Provider layer
 overall_tasks_total: 94
-overall_tasks_done: 26
-overall_progress_pct: 28
+overall_tasks_done: 29
+overall_progress_pct: 31
 repo_path: C:\Users\d\OneDrive\Desktop\AI_runtime
 runtime_home_default: "%LOCALAPPDATA%\\AIR"
-last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after each `npm run check`
+last_check_result: PASS (2026-10-17)   # update to PASS/FAIL with date after each `npm run check`
 ---
 
 # BUILD_STATUS.md — live build tracker
@@ -24,17 +24,17 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 | Item | Value |
 |---|---|
 | Current phase | **P3 — Provider layer** |
-| Phase progress | Phase 3: 1 / 9 tasks done |
-| Overall | 26 / 94 tasks done (Phase 0 complete + Phase 1 complete + Phase 2 complete + P3-T01 + planner protocol) |
-| Last `npm run check` | PASS (2026-10-16) — typecheck, lint, deps:check, 420 unit tests green (+ 3 chaos tests green) |
-| Coverage gate | PASS (2026-10-16) — 95.47% stmts, 86.19% branches, 97.40% funcs, 96.33% lines; `src/providers/types.ts` 98.92% lines, 84.44% branches; `src/journal/**` 99.03% lines, 90.88% branches; `util/paths` 98.71% stmts, 92.53% branches |
+| Phase progress | Phase 3: 4 / 9 tasks done |
+| Overall | 29 / 94 tasks done (Phase 0 complete + Phase 1 complete + Phase 2 complete + P3-T01 + P3-T02 + P3-T03 + P3-T04 + planner protocol) |
+| Last `npm run check` | PASS (2026-10-17) — typecheck, lint, deps:check, 503 unit tests green (+ 3 chaos tests green) |
+| Coverage gate | PASS (2026-10-17) — 95.21% stmts, 85.57% branches, 96.76% funcs, 96.01% lines; `src/providers/openai.ts` 94.30% stmts, 82.89% branches, 94.96% lines; `src/providers/anthropic.ts` 96.05% stmts, 84.81% branches, 96.40% lines; `src/providers/sse.ts` 89.13% stmts, 80.64% branches, 91.11% lines; `src/providers/mock.ts` 92.50% stmts, 85.31% branches; `src/journal/**` 97.97% stmts, 90.88% branches; `util/paths` 98.71% stmts, 92.53% branches |
 | Known blockers | None |
 
 ## 2. NEXT UP (ordered — take the first unblocked item)
 
-1. **P3-T02** — Mock/scripted provider (`src/providers/mock.ts`).
-2. **P3-T03** — Anthropic adapter (`src/providers/anthropic.ts`).
-3. **P3-T04** — OpenAI-compatible adapter (`src/providers/openai.ts`).
+1. **P3-T05** — Ollama adapter (`src/providers/ollama.ts`).
+2. **P3-T06** — Resilience wrapper (`src/providers/resilience.ts`).
+3. **P3-T07** — Token & cost accounting (`src/providers/accounting.ts`).
 
 ## 3. Blockers / human actions required
 
@@ -84,9 +84,9 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 | ID | Task | Status | Notes |
 |---|---|---|---|
 | P3-T01 | Provider interface & normalized types | DONE | `src/providers/types.ts`, `tests/unit/providers/types.test.ts`: Universal `Provider` contract (`complete`, `stream`), `NormalizedRequest` / `NormalizedResponse`, discriminated message parts (`text`, `thinking`, `image`, `tool_call`, `tool_result`), `ProviderStreamEvent` union (`stream_start`, `text_delta`, `thinking_delta`, `tool_call_start`, `tool_call_delta`, `tool_call_end`, `usage`, `stream_end`, `error`), `TokenUsage`, `StopReason` enum, `ProviderCapabilities` flags, type guards, extraction helpers (`extractText`, `extractThinking`, `extractToolCalls`), and streaming response accumulator (`assembleStreamResponse`). 23 unit tests pass (98.92% lines, 84.44% branches in types.ts). |
-| P3-T02 | Mock/scripted provider | TODO | |
-| P3-T03 | Anthropic adapter | TODO | |
-| P3-T04 | OpenAI-compatible adapter | TODO | |
+| P3-T02 | Mock/scripted provider | DONE | `src/providers/mock.ts`, `tests/unit/providers/mock.test.ts`: Deterministic scriptable mock provider implementing universal `Provider` contract. FIFO queued steps, conditional step handlers (`when`, `whenUserTextMatches`), dynamic step generator functions, latency simulation with abortable sleep and cancellation, configurable fault/error injection via `AirError`, stream chunk synthesis, usage tracking, and call inspection/history spy API. 24 unit tests pass (92.94% lines, 85.31% branches). |
+| P3-T03 | Anthropic adapter | DONE | `src/providers/anthropic.ts`, `tests/unit/providers/anthropic.test.ts`: Universal `Provider` contract for Anthropic Messages API. Streaming (SSE chunk fragmentation, ping filtering, delta parsing), extended thinking token capture, tool use with input JSON assembly, prompt cache accounting (`cacheReadTokens`, `cacheWriteTokens`), stop reason mapping, timeout & abort cancellation, and comprehensive HTTP status error mapping to typed `AirError`. Injected `Clock` support per Rule R6. 31 unit tests pass (95.07% stmts, 84.38% branches, 95.66% lines). |
+| P3-T04 | OpenAI-compatible adapter | DONE | `src/providers/openai.ts`, `tests/unit/providers/openai.test.ts`: Universal `Provider` contract for OpenAI and OpenAI-compatible endpoints (NVIDIA NIM, OpenRouter, LM Studio, llama.cpp). Parallel tool-call delta streaming assembly, reasoning/thinking token capture (`reasoning_content` / `thinking`), prompt cache tracking (`cached_tokens`), `reasoning_effort` mapping, `max_completion_tokens` option, optional apiKey for local instances, organization/project headers, extraBody/extraHeaders, and HTTP status error mapping to typed `AirError`. Injected `Clock` support per Rule R6. 28 unit tests pass (94.30% stmts, 82.89% branches, 94.96% lines). |
 | P3-T05 | Ollama adapter | TODO | |
 | P3-T06 | Resilience wrapper | TODO | |
 | P3-T07 | Token & cost accounting | TODO | |
@@ -200,6 +200,12 @@ last_check_result: PASS (2026-10-16)   # update to PASS/FAIL with date after eac
 | 2026-10-15 | npm (not pnpm) for zero extra setup; dependency versions pinned at first install by bootstrap (lockfile committed) | — |
 
 ## 6. Session log (newest first; append an entry every session)
+
+### 2026-10-17 — Antigravity Engineering Agent — session 25
+- **Did:** Completed P3-T04 (OpenAI-compatible adapter) and shared SSE parser (`src/providers/sse.ts`). (1) Extracted robust standalone SSE parser `parseSseStream` in `src/providers/sse.ts` with chunk fragmentation handling, multi-line data parsing, and cancellation support. (2) Implemented `OpenAIProvider` in `src/providers/openai.ts`: universal `Provider` contract (`complete`, `stream`) supporting OpenAI, NVIDIA NIM (`type: 'nvidia'`), and local servers (LM Studio, llama.cpp with optional API keys). (3) Streaming with parallel tool-call delta assembly: tracks active tool calls by index, interleaves argument fragments, and yields `tool_call_start`, `tool_call_delta`, and `tool_call_end` with parsed JSON object arguments. (4) Reasoning / thinking tokens capture (`reasoning_content` and `thinking` deltas for DeepSeek-R1 / OpenAI o-series) and `reasoning_effort` mapping (`low`/`medium`/`high`). (5) Prompt caching accounting (`prompt_tokens_details.cached_tokens`). (6) Error handling: maps 400 (`PROVIDER_INVALID_REQUEST`), 401 (`PROVIDER_AUTH_FAILED`), 403 (`PERMISSION_DENIED`), 404 (`NOT_FOUND`), 429 (`PROVIDER_RATE_LIMITED` with `retryAfterMs` parsing), 500/502/503/504 (`PROVIDER_UNAVAILABLE`), aborts (`CANCELLED`). Injected `Clock` support per Rule R6. (7) Added 28 unit tests in `tests/unit/providers/openai.test.ts`. Total test suite reached 503 unit tests across 28 test files.
+- **Evidence:** `npm run check` PASS (typecheck clean, ESLint clean, depcruise 0 violations across 74 modules, 503 unit tests green). `npm run test:coverage` PASS (statements: 95.21%, branches: 85.57%, functions: 96.76%, lines: 96.01%; `src/providers/openai.ts`: 94.30% statements, 82.89% branches, 94.96% lines; `src/providers/anthropic.ts`: 96.05% statements, 84.81% branches; `src/providers/sse.ts`: 89.13% statements, 80.64% branches; `src/journal/**`: 97.97% statements, 90.88% branches; `src/util/paths.ts`: 98.71% statements, 92.53% branches).
+- **Status changes:** P3-T04 IN_PROGRESS→DONE; overall progress 29/94 (31%); Phase 3 progress 4/9.
+- **Next agent should:** Proceed to P3-T05 (Ollama native adapter in `src/providers/ollama.ts`: native `/api/chat` and `/api/tags`, tool support detection, model pull status, error mapping to `AirError`).
 
 ### 2026-10-16 — Antigravity Engineering Agent — session 22
 - **Did:** Completed P3-T01 (Provider interface & normalized types). Created `src/providers/types.ts` and re-exported from `src/providers/index.ts`: (1) Normalized message roles (`system`, `user`, `assistant`, `tool`). (2) Discriminated message parts: `TextPart`, `ThinkingPart` (preserving extended reasoning per planner protocol), `ImagePart`, `ToolCallPart` (object or stringified arguments), and `ToolResultPart` (with error flags). (3) `NormalizedMessage` and `NormalizedRequest` with parameters, stopSequences, thinking budget, and `ProviderToolDefinition`. (4) `TokenUsage` accounting and normalized `StopReason` enum (`stop`, `tool_calls`, `max_tokens`, `content_filter`, `cancelled`, `error`). (5) `NormalizedResponse` structure. (6) Universal streaming events (`ProviderStreamEvent`: `stream_start`, `text_delta`, `thinking_delta`, `tool_call_start`, `tool_call_delta`, `tool_call_end`, `usage`, `stream_end`, `error`). (7) Universal `Provider` interface and `ProviderCapabilities` flags. (8) Type guards and extraction utilities (`extractText`, `extractThinking`, `extractToolCalls`), and streaming accumulator (`assembleStreamResponse`). (9) Added 23 unit tests in `tests/unit/providers/types.test.ts`. Included `src/providers/**` in `vitest.config.ts` coverage tracking.
