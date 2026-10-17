@@ -141,9 +141,16 @@ interface MatchedCandidate {
 
 /**
  * Case-insensitive wildcard glob matching (e.g. 'coder*', 'fs.*', '*').
+ * Also supports pipe-delimited alternation (e.g. 'npm *|npx *|git *').
  */
 function matchGlob(value: string, pattern: string): boolean {
   if (pattern === '*' || pattern === '**') return true;
+
+  if (pattern.includes('|')) {
+    const subPatterns = pattern.split('|').map((p) => p.trim());
+    return subPatterns.some((sp) => matchGlob(value, sp));
+  }
+
   if (!pattern.includes('*') && !pattern.includes('?')) {
     return value.toLowerCase() === pattern.toLowerCase();
   }
@@ -174,6 +181,12 @@ function matchArgumentPattern(actual: unknown, expected: unknown): boolean {
 
   if (expected === null) {
     return actual === null;
+  }
+
+  // If expected is an array of candidate patterns and actual is not an array,
+  // evaluate as OR: match if actual matches ANY pattern in the array.
+  if (Array.isArray(expected) && !Array.isArray(actual)) {
+    return expected.some((exp) => matchArgumentPattern(actual, exp));
   }
 
   if (Array.isArray(expected)) {
@@ -762,6 +775,22 @@ export class PolicyEngine {
 
     const isTainted =
       request.tainted === true || request.taintLevel === 'tainted';
+
+    if (rule.effect === 'deny' || rule.effect === 'ask_user') {
+      if (taintCondition.disallowTainted && !isTainted) {
+        return {
+          matched: false,
+          reason: 'Rule targets tainted requests, but context is clean',
+        };
+      }
+      if (taintCondition.maxTaintLevel === 'clean' && !isTainted) {
+        return {
+          matched: false,
+          reason: 'Rule targets tainted requests, but context is clean',
+        };
+      }
+      return { matched: true };
+    }
 
     if (taintCondition.disallowTainted) {
       if (isTainted && rule.effect === 'allow') {

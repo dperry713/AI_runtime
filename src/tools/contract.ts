@@ -74,6 +74,8 @@ export interface ToolExecutionResult<TOutput = unknown> {
   readonly durationMs?: number | undefined;
   readonly capabilities?: readonly ToolCapability[] | undefined;
   readonly meta?: Record<string, unknown> | undefined;
+  /** Audit decision ID issued by PolicyEngine prior to execution (P5-T08 / Rule R3). */
+  readonly decisionId?: string | undefined;
 }
 
 // ============================================================================

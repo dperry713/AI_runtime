@@ -26,7 +26,8 @@
     "test:perf": "vitest run tests/perf --passWithNoTests",
     "test:eval": "vitest run tests/eval --passWithNoTests",
     "test:coverage": "vitest run tests/unit tests/integration --coverage --passWithNoTests",
-    "check": "npm run typecheck && npm run lint && npm run deps:check && npm test"
+    "check": "npm run typecheck && npm run lint && npm run deps:check && npm test",
+    "dev:run": "tsx src/agent/harness.ts"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",

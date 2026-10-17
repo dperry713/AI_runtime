@@ -125,6 +125,11 @@ export interface ToolExecutorOptions {
   readonly defaultTimeoutMs?: number | undefined;
   readonly defaultMaxOutputBytes?: number | undefined;
   readonly defaultWorkspaceRoot?: string | undefined;
+  /**
+   * If true, strictly asserts that every tool execution must pass through a policy engine
+   * and receive a valid decision ID (Rule R3, Threat T6, Exit Gate P5).
+   */
+  readonly requirePolicyDecision?: boolean | undefined;
 }
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -198,6 +203,7 @@ export class ToolExecutor {
   private readonly defaultTimeoutMs: number;
   private readonly defaultMaxOutputBytes: number;
   private readonly defaultWorkspaceRoot?: string | undefined;
+  private readonly requirePolicyDecision: boolean;
 
   public constructor(options?: ToolExecutorOptions) {
     this.registry = options?.registry;
@@ -211,6 +217,7 @@ export class ToolExecutor {
     this.defaultTimeoutMs = options?.defaultTimeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.defaultMaxOutputBytes = options?.defaultMaxOutputBytes ?? DEFAULT_MAX_OUTPUT_BYTES;
     this.defaultWorkspaceRoot = options?.defaultWorkspaceRoot;
+    this.requirePolicyDecision = options?.requirePolicyDecision ?? false;
   }
 
   /**
@@ -294,7 +301,9 @@ export class ToolExecutor {
       workspaceRoot: request.workspaceRoot ?? this.defaultWorkspaceRoot,
     };
 
-    // 6. Policy Evaluation (Phase 5 hook)
+    // 6. Policy Evaluation (P5-T08 Choke point: Rule R3, Threat T6)
+    let decisionId: string | undefined;
+
     if (this.policyHook) {
       const decision = await this.policyHook.evaluate({
         tool,
@@ -302,6 +311,25 @@ export class ToolExecutor {
         capabilities,
         executionContext: execContext,
       });
+
+      // P5-T08: Single choke point runtime assertion: cannot run tool without a valid decisionId
+      if (
+        !decision ||
+        typeof decision.decisionId !== 'string' ||
+        decision.decisionId.trim().length === 0
+      ) {
+        throw new AirError(
+          'SECURITY_VIOLATION',
+          `Security violation: tool "${tool.name}" cannot execute without a valid policy decision ID`,
+          {
+            context: {
+              toolName: tool.name,
+              callId,
+              decision,
+            },
+          },
+        );
+      }
 
       if (!decision.allowed) {
         const reason = decision.reason ?? `Policy denied execution of tool "${tool.name}"`;
@@ -314,6 +342,14 @@ export class ToolExecutor {
           },
         });
       }
+
+      decisionId = decision.decisionId;
+    } else if (this.requirePolicyDecision) {
+      throw new AirError(
+        'SECURITY_VIOLATION',
+        `Security violation: executor cannot run tool "${tool.name}" without a policy engine (Rule R3)`,
+        { context: { toolName: tool.name, callId } },
+      );
     }
 
     // 7. Emit tool.started event & observer notification
@@ -359,6 +395,7 @@ export class ToolExecutor {
             toolCallId: callId,
             name: tool.name,
             idempotent: tool.idempotent,
+            decisionId,
           },
           meta: {
             runId,
@@ -481,6 +518,7 @@ export class ToolExecutor {
       truncated,
       durationMs,
       capabilities,
+      decisionId,
       meta: request.contextMeta,
     };
   }

@@ -267,6 +267,7 @@ export class ToolTestKit {
         this.recordedDecisions.push(ctx);
         const decision: ToolPolicyDecision = {
           allowed: this.currentDecision === 'allow',
+          decisionId: `dec-testkit-${this.recordedDecisions.length}`,
           reason: this.currentDecisionReason ?? `Decision: ${this.currentDecision}`,
         };
         return Promise.resolve(decision);

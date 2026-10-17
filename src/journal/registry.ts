@@ -70,7 +70,7 @@ export const RunCancelledPayloadSchema = z.object({
 });
 
 export const RunBudgetExceededPayloadSchema = z.object({
-  dimension: z.enum(['tokens', 'wall_time', 'cost', 'steps']),
+  dimension: z.enum(['tokens', 'wall_time', 'cost', 'steps', 'tool_calls']),
   limit: z.number().nonnegative(),
   actual: z.number().nonnegative(),
 });
@@ -210,6 +210,17 @@ export const MemoryForgottenPayloadSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
+// 5.1 Context Lifecycle Payloads
+// ---------------------------------------------------------------------------
+
+export const ContextCompactedPayloadSchema = z.object({
+  previousTokens: z.number().int().nonnegative(),
+  compactedTokens: z.number().int().nonnegative(),
+  removedMessageCount: z.number().int().nonnegative(),
+  summary: z.string().optional(),
+});
+
+// ---------------------------------------------------------------------------
 // 6. System Lifecycle Payloads
 // ---------------------------------------------------------------------------
 
@@ -297,6 +308,9 @@ export const EVENT_SCHEMAS = {
   'memory.searched': defineEnvelope('memory.searched', MemorySearchedPayloadSchema),
   'memory.forgotten': defineEnvelope('memory.forgotten', MemoryForgottenPayloadSchema),
 
+  // Context
+  'context.compacted': defineEnvelope('context.compacted', ContextCompactedPayloadSchema),
+
   // System
   'system.started': defineEnvelope('system.started', SystemStartedPayloadSchema),
   'system.shutdown': defineEnvelope('system.shutdown', SystemShutdownPayloadSchema),
@@ -340,6 +354,7 @@ export const AirEventEnvelopeSchema = z.discriminatedUnion('type', [
   EVENT_SCHEMAS['memory.written'],
   EVENT_SCHEMAS['memory.searched'],
   EVENT_SCHEMAS['memory.forgotten'],
+  EVENT_SCHEMAS['context.compacted'],
   EVENT_SCHEMAS['system.started'],
   EVENT_SCHEMAS['system.shutdown'],
   EVENT_SCHEMAS['system.recovered'],

@@ -654,3 +654,115 @@ describe('ToolExecutor (Observability & Journal Events)', () => {
   });
 });
 
+describe('ToolExecutor Policy Choke Point Assertions (P5-T08 / Rule R3 / Threat T6)', () => {
+  const dummyTool = defineTool({
+    name: 'security.check.tool',
+    description: 'Security testing tool',
+    risk: 'high',
+    idempotent: false,
+    inputSchema: z.object({ value: z.string() }),
+    execute: async (args) => {
+      await Promise.resolve();
+      return `executed: ${args.value}`;
+    },
+  });
+
+  it('throws SECURITY_VIOLATION if requirePolicyDecision is true and no policyHook is configured', async () => {
+    const executor = new ToolExecutor({
+      requirePolicyDecision: true,
+    });
+
+    await expect(
+      executor.execute({
+        tool: dummyTool,
+        runId: 'run-001',
+        input: { value: 'test' },
+      }),
+    ).rejects.toSatisfy((err: unknown) => {
+      expect(err).toBeInstanceOf(AirError);
+      const airErr = err as AirError;
+      expect(airErr.code).toBe('SECURITY_VIOLATION');
+      expect(airErr.message).toContain('without a policy engine');
+      return true;
+    });
+  });
+
+  it('throws SECURITY_VIOLATION if policyHook returns decision without a valid decisionId', async () => {
+    const malformedPolicyHook: ToolPolicyHook = {
+      evaluate: () =>
+        Promise.resolve({
+          allowed: true,
+          // Missing decisionId
+        }),
+    };
+
+    const executor = new ToolExecutor({
+      policyHook: malformedPolicyHook,
+    });
+
+    await expect(
+      executor.execute({
+        tool: dummyTool,
+        runId: 'run-001',
+        input: { value: 'test' },
+      }),
+    ).rejects.toSatisfy((err: unknown) => {
+      expect(err).toBeInstanceOf(AirError);
+      const airErr = err as AirError;
+      expect(airErr.code).toBe('SECURITY_VIOLATION');
+      expect(airErr.message).toContain('valid policy decision ID');
+      return true;
+    });
+  });
+
+  it('throws SECURITY_VIOLATION if policyHook returns an empty string decisionId', async () => {
+    const emptyIdPolicyHook: ToolPolicyHook = {
+      evaluate: () =>
+        Promise.resolve({
+          allowed: true,
+          decisionId: '   ',
+        }),
+    };
+
+    const executor = new ToolExecutor({
+      policyHook: emptyIdPolicyHook,
+    });
+
+    await expect(
+      executor.execute({
+        tool: dummyTool,
+        runId: 'run-001',
+        input: { value: 'test' },
+      }),
+    ).rejects.toSatisfy((err: unknown) => {
+      expect(err).toBeInstanceOf(AirError);
+      const airErr = err as AirError;
+      expect(airErr.code).toBe('SECURITY_VIOLATION');
+      return true;
+    });
+  });
+
+  it('records decisionId in result and passes valid execution through', async () => {
+    const validPolicyHook: ToolPolicyHook = {
+      evaluate: () =>
+        Promise.resolve({
+          allowed: true,
+          decisionId: 'dec-valid-12345',
+        }),
+    };
+
+    const executor = new ToolExecutor({
+      policyHook: validPolicyHook,
+    });
+
+    const result = await executor.execute({
+      tool: dummyTool,
+      runId: 'run-001',
+      input: { value: 'allowed-call' },
+    });
+
+    expect(result.output).toBe('executed: allowed-call');
+    expect(result.decisionId).toBe('dec-valid-12345');
+  });
+});
+
