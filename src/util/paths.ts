@@ -129,6 +129,11 @@ export function validatePathSyntax(rawPath: string): void {
     throw new AirError('PATH_NOT_ALLOWED', 'Path cannot contain null bytes');
   }
 
+  // Reject URL-encoded path traversal, separator sequences, null bytes, and double-encoding
+  if (/%(2[eEfF]|5[cC]|00|25)/i.test(rawPath)) {
+    throw new AirError('PATH_NOT_ALLOWED', `URL-encoded path traversal or separator sequences are forbidden: "${rawPath}"`);
+  }
+
   const normalized = normalizeSeparators(rawPath);
 
   // Reject UNC paths and device namespaces
@@ -136,9 +141,14 @@ export function validatePathSyntax(rawPath: string): void {
     throw new AirError('PATH_NOT_ALLOWED', `UNC and device namespace paths are forbidden: "${rawPath}"`);
   }
 
-  // Reject Alternate Data Streams (colon anywhere other than drive letter position, e.g. "C:\")
-  const driveMatch = /^[a-zA-Z]:/.exec(normalized);
-  const afterDrive = driveMatch ? normalized.slice(2) : normalized;
+  // Reject drive-relative paths (e.g. "C:file.txt") and Alternate Data Streams (colon anywhere other than drive letter position, e.g. "C:\")
+  const drivePrefix = /^[a-zA-Z]:/.exec(normalized)?.[0];
+  if (drivePrefix) {
+    if (normalized.length > 2 && normalized[2] !== '\\') {
+      throw new AirError('PATH_NOT_ALLOWED', `Drive-relative paths without root slash are forbidden: "${rawPath}"`);
+    }
+  }
+  const afterDrive = drivePrefix ? normalized.slice(2) : normalized;
   if (afterDrive.includes(':')) {
     throw new AirError('PATH_NOT_ALLOWED', `Alternate Data Streams (ADS) are forbidden: "${rawPath}"`);
   }
@@ -146,7 +156,7 @@ export function validatePathSyntax(rawPath: string): void {
   // Check all segments
   const segments = normalized.split('\\');
   for (const seg of segments) {
-    if (!seg || seg === driveMatch?.[0]) {
+    if (!seg || seg === drivePrefix) {
       continue;
     }
     rejectUnsafeName(seg);

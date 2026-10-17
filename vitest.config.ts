@@ -18,11 +18,9 @@ export default defineConfig({
         'src/kernel/**',
         'src/mcp/**',
         'src/memory/**',
-        'src/policy/**',
         'src/sandbox/**',
         'src/service/**',
         'src/shell/**',
-        'src/tools/**',
       ],
       reporter: ['text', 'lcov', 'json-summary'],
       thresholds: {

@@ -26,7 +26,7 @@ Only symbols exported from a module's `index.ts` are public. Update this file wh
 `EventEnvelope`, `EventRegistry`, `Journal.append(stream, type, payload, ctx)`, `Journal.read(stream, range)`, `Journal.subscribe(filter)`, `replay(stream, reducer)`, `recoverJournal(dir)`, `EventBus`.
 
 ## policy (L3) — P5
-`Capability`, `PolicyEngine.decide(input): Decision`, `loadPolicy(file)`, `lintPolicy(doc)`, `ApprovalBroker.request/resolve/list`, `Budget`, `BudgetTracker`, `Taint`, `fence(output)`.
+`Capability`, `CapabilityPattern`, `parseCapabilityPattern`, `matchCapability`, `calculateCapabilitySpecificity`, `isCapabilitySubsumed`, `PolicyEngine.evaluate/decide(req): PolicyDecision`, `PolicyEngine.explain(req): PolicyExplainResult`, `PolicyEngine.asToolPolicyHook()`, `loadPolicyFromFile(file)`, `parsePolicy(content)`, `computePolicyHash(doc)`, `lintPolicy(doc)`, `ApprovalBroker.request/resolve/list`, `Budget`, `BudgetTracker`, `Taint`, `fence(output)`.
 
 ## sandbox (L3) — P7
 `ProcessRunner.run(spec, {signal}): Promise<ProcessResult>`, `SandboxHelperClient`, `ReapOrphans()`.

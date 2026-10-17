@@ -103,3 +103,56 @@ export {
   mapOpenAiHttpError,
 } from './openai.js';
 
+export {
+  parseNdjsonStream,
+} from './ndjson.js';
+
+export {
+  type OllamaProviderOptions,
+  type OllamaModelDetails,
+  type OllamaShowResponse,
+  OllamaProvider,
+  mapOllamaHttpError,
+} from './ollama.js';
+
+export {
+  type CircuitState,
+  type CircuitBreakerOptions,
+  type RetryOptions,
+  type FallbackOptions,
+  type ResilienceEvent,
+  type ResilienceOptions,
+  CircuitBreaker,
+  ResilientProvider,
+  defaultIsFailure,
+  defaultIsRetryable,
+  defaultShouldFallback,
+} from './resilience.js';
+
+export {
+  type ModelPricing,
+  DEFAULT_MODEL_PRICING,
+  PricingRegistry,
+  type CostBreakdown,
+  calculateCost,
+  estimateTokens,
+  type CostEstimate,
+  estimateCost,
+  type RunUsageRecord,
+  type RunUsageSummary,
+  RunUsageTracker,
+} from './accounting.js';
+
+export {
+  type VcrMode,
+  type VcrMatchStrategy,
+  type VcrRecordedRequest,
+  type VcrInteraction,
+  type VcrCassette,
+  type VcrProviderOptions,
+  sanitizeVcrData,
+  loadCassette,
+  saveCassette,
+  VcrProvider,
+} from './vcr.js';
+

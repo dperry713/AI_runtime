@@ -10,6 +10,7 @@
 
 import { z } from 'zod';
 import type { ProviderType } from '../config/index.js';
+export type { ProviderType } from '../config/index.js';
 import { AirError } from '../errors/index.js';
 import type { RunId, SessionId, TurnId } from '../types/index.js';
 
