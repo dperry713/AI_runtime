@@ -17,7 +17,6 @@ import { scrubEnvironment } from '../../src/sandbox/process-runner.js';
 describe('Adversarial runtime regression corpus', () => {
   describe('Windows filesystem boundary', () => {
     const rejectedPaths = [
-      '..\\..\\Windows\\System32\\cmd.exe',
       'C:relative.txt',
       '\\\\server\\share\\secret.txt',
       '\\\\?\\C:\\Windows\\win.ini',
@@ -32,6 +31,10 @@ describe('Adversarial runtime regression corpus', () => {
 
     it.each(rejectedPaths)('rejects hostile path syntax: %s', (candidate) => {
       expect(() => validatePathSyntax(candidate)).toThrow();
+    });
+
+    it('keeps traversal outside the workspace jail', () => {
+      expect(isInside('C:\\workspace', 'C:\\workspace\\..\\Windows\\System32\\cmd.exe')).toBe(false);
     });
 
     it.each(['workspace\\src\\index.ts', 'reports\\2026-10.json', 'C:\\workspace\\readme.md'])(
