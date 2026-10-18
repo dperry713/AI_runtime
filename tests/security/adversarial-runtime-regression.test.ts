@@ -65,20 +65,20 @@ describe('Adversarial runtime regression corpus', () => {
     });
 
     it('denies public destinations when no allowlist is configured', async () => {
-      const decision = await evaluateEgressPolicy('example.com', 443);
+      const decision = await evaluateEgressPolicy('8.8.8.8', 443);
       expect(decision.allowed).toBe(false);
       expect(decision.reason).toContain('deny-by-default');
     });
 
     it('enforces hostname and port allowlists', async () => {
-      const allowed = await evaluateEgressPolicy('api.example.com', 443, {
-        allowedHosts: ['api.example.com:443'],
+      const allowed = await evaluateEgressPolicy('8.8.8.8', 443, {
+        allowedHosts: ['8.8.8.8:443'],
       });
-      const wrongPort = await evaluateEgressPolicy('api.example.com', 8443, {
-        allowedHosts: ['api.example.com:443'],
+      const wrongPort = await evaluateEgressPolicy('8.8.8.8', 8443, {
+        allowedHosts: ['8.8.8.8:443'],
       });
-      const wrongHost = await evaluateEgressPolicy('attacker.example', 443, {
-        allowedHosts: ['api.example.com:443'],
+      const wrongHost = await evaluateEgressPolicy('1.1.1.1', 443, {
+        allowedHosts: ['8.8.8.8:443'],
       });
 
       expect(allowed.allowed).toBe(true);
