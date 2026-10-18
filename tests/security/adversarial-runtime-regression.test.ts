@@ -5,7 +5,7 @@
  * host commands. Every network case is evaluated as a policy decision only.
  */
 import { describe, expect, it } from 'vitest';
-import { validatePathSyntax } from '../../src/util/paths.js';
+import { isInside, validatePathSyntax } from '../../src/util/paths.js';
 import {
   detectInjectionMarkers,
   evaluateTaintEscalation,
