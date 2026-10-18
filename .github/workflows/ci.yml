@@ -15,6 +15,10 @@ jobs:
   check:
     runs-on: windows-latest
     timeout-minutes: 30
+    env:
+      # node-gyp can mis-detect newer Visual Studio Preview registrations on hosted Windows runners.
+      # Pin the installed VS 2022 C++ toolchain for native dependencies such as better-sqlite3.
+      GYP_MSVS_VERSION: '2022'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,18 +32,25 @@ jobs:
       - run: npm run test:coverage
       - run: npm run test:e2e
       - run: npm run test:security
+      - name: Repeated benchmark and accuracy suite
+        run: ./scripts/benchmark.ps1 -Iterations 3
+        shell: pwsh
       - run: npm audit --omit=dev --audit-level=high
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: coverage
-          path: coverage/
+          name: coverage-and-benchmark-report
+          path: |
+            coverage/
+            var/test-logs/benchmark-report.json
           if-no-files-found: ignore
 
   nightly:
     if: github.event_name == 'schedule'
     runs-on: windows-latest
     timeout-minutes: 120
+    env:
+      GYP_MSVS_VERSION: '2022'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
