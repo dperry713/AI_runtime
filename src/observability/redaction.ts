@@ -76,7 +76,7 @@ export function redactString(text: string): string {
 
   // 2. Pattern redactors
   for (const { pattern, replacement } of COMMON_SECRET_PATTERNS) {
-    result = result.replace(pattern, replacement);
+    result = result.replaceAll(pattern, replacement);
   }
 
   return result;

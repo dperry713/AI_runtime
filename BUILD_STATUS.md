@@ -26,7 +26,7 @@ last_check_result: PASS (2026-10-18)   # update to PASS/FAIL with date after eac
 | Current phase | **P8 — Memory** |
 | Phase progress | Phase 8: 1 / 6 tasks done (P8-T01 DONE) |
 | Overall | 66 / 94 tasks done (Phases 0 through 7 complete, Phase 8 in progress - 70.2%) |
-| Last `npm run check` | PASS (2026-10-18) — typecheck clean, lint clean, deps:check clean, 1122 unit/integration tests green (+ 3 skipped live tests across 65 test files) |
+| Last `npm run check` | PASS (2026-10-18) — typecheck clean, lint clean, deps:check clean, 1123 unit/integration tests green (+ 3 skipped live tests across 65 test files) |
 | Coverage gate | PASS (2026-10-18) — all suites pass; src/memory/types.ts 100% lines, overall lines 92.78%, statements 91.49%, branches 81.35%, functions 94.67% |
 | Known blockers | None |
 
@@ -198,6 +198,17 @@ last_check_result: PASS (2026-10-18)   # update to PASS/FAIL with date after eac
 | 2026-10-15 | npm (not pnpm) for zero extra setup; dependency versions pinned at first install by bootstrap (lockfile committed) | — |
 
 ## 6. Session log (newest first; append an entry every session)
+
+### 2026-10-18 — Antigravity Engineering Agent — session 45
+- **Did:** Code review and bug fixes across multiple modules.
+  (1) Fixed double policy evaluation in `src/agent/turn-engine.ts`: removed pre-evaluation of policy in `executeToolCalls`; the ToolExecutor's single choke-point (Rule R3) now handles policy, denial, and approval flow exclusively, preventing double approval prompts and double `tool.policy_decided` journal events.
+  (2) Fixed `\\?\` extended-length prefix detection in `src/util/paths.ts`: corrected `validatePathSyntax` to reject `\\?\C:\path` abuse (was matching `\\??\` with two question marks instead of one). Added test case in `tests/unit/util/paths.test.ts`.
+  (3) Fixed hardcoded `seq: 1` in `src/tools/executor.ts`: added per-stream monotonic `eventSeq` counter so executor-published journal events (`tool.started`, `tool.completed`, `tool.timed_out`, `tool.cancelled`, `tool.failed`) have gapless increasing sequence numbers.
+  (4) Replaced raw `new Date()` calls with injected `Clock` in `src/journal/recovery.ts`, `src/sandbox/appcontainer.ts`, `src/observability/audit.ts`, `src/observability/metrics.ts`, `src/sandbox/network.ts` (Rule R6 determinism).
+  (5) Fixed redaction in `src/observability/redaction.ts`: changed `.replace()` to `.replaceAll()` so multiple secrets in a single string are all redacted (Rule R4).
+- **Evidence:** `npm run check` PASS (exit code 0: typecheck clean, eslint clean, depcruise 0 violations across 123 modules / 490 dependencies, 1123 unit/integration tests green).
+- **Status changes:** None (bug fixes only, no task status changes).
+- **Next agent should:** Run `npm run check` to verify all fixes, then commit the working tree.
 
 ### 2026-10-18 — Antigravity Engineering Agent — session 44
 - **Did:** Completed P8-T01 (Memory interface).

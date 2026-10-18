@@ -111,6 +111,12 @@ export interface ToolExecutionRequest<TInput = unknown, TOutput = unknown> {
   readonly maxOutputBytes?: number | undefined;
   readonly workspaceRoot?: string | undefined;
   readonly contextMeta?: Record<string, unknown> | undefined;
+  /**
+   * Pre-computed policy decision ID. When provided, the executor skips policy
+   * hook evaluation and uses this decision ID directly (avoids double policy
+   * evaluation when the caller has already evaluated policy).
+   */
+  readonly precomputedDecisionId?: string | undefined;
 }
 
 export interface ToolExecutorOptions {
@@ -204,6 +210,7 @@ export class ToolExecutor {
   private readonly defaultMaxOutputBytes: number;
   private readonly defaultWorkspaceRoot?: string | undefined;
   private readonly requirePolicyDecision: boolean;
+  private readonly eventSeqs = new Map<string, number>();
 
   public constructor(options?: ToolExecutorOptions) {
     this.registry = options?.registry;
@@ -218,6 +225,16 @@ export class ToolExecutor {
     this.defaultMaxOutputBytes = options?.defaultMaxOutputBytes ?? DEFAULT_MAX_OUTPUT_BYTES;
     this.defaultWorkspaceRoot = options?.defaultWorkspaceRoot;
     this.requirePolicyDecision = options?.requirePolicyDecision ?? false;
+  }
+
+  /**
+   * Returns the next monotonic sequence number for a given stream.
+   * Ensures executor-published events have gapless, increasing seq per stream.
+   */
+  private nextEventSeq(stream: string): number {
+    const next = (this.eventSeqs.get(stream) ?? 0) + 1;
+    this.eventSeqs.set(stream, next);
+    return next;
   }
 
   /**
@@ -304,7 +321,11 @@ export class ToolExecutor {
     // 6. Policy Evaluation (P5-T08 Choke point: Rule R3, Threat T6)
     let decisionId: string | undefined;
 
-    if (this.policyHook) {
+    if (request.precomputedDecisionId) {
+      // Caller has already evaluated policy (e.g. TurnEngine); skip re-evaluation
+      // to avoid double approval prompts and double journal events.
+      decisionId = request.precomputedDecisionId;
+    } else if (this.policyHook) {
       const decision = await this.policyHook.evaluate({
         tool,
         input: validatedInput,
@@ -389,7 +410,7 @@ export class ToolExecutor {
       this.eventBus.publish(
         createEnvelope({
           stream: `run:${runId}`,
-          seq: 1,
+          seq: this.nextEventSeq(`run:${runId}`),
           type: 'tool.started',
           payload: {
             toolCallId: callId,
@@ -492,7 +513,7 @@ export class ToolExecutor {
       this.eventBus.publish(
         createEnvelope({
           stream: `run:${runId}`,
-          seq: 1,
+          seq: this.nextEventSeq(`run:${runId}`),
           type: 'tool.completed',
           payload: {
             toolCallId: callId,
@@ -599,7 +620,7 @@ export class ToolExecutor {
       this.eventBus.publish(
         createEnvelope({
           stream: `run:${runId}`,
-          seq: 1,
+          seq: this.nextEventSeq(`run:${runId}`),
           type: 'tool.timed_out',
           payload: {
             toolCallId: callId,
@@ -617,7 +638,7 @@ export class ToolExecutor {
       this.eventBus.publish(
         createEnvelope({
           stream: `run:${runId}`,
-          seq: 1,
+          seq: this.nextEventSeq(`run:${runId}`),
           type: 'tool.cancelled',
           payload: {
             toolCallId: callId,

@@ -137,7 +137,7 @@ export function validatePathSyntax(rawPath: string): void {
   const normalized = normalizeSeparators(rawPath);
 
   // Reject UNC paths and device namespaces
-  if (normalized.startsWith('\\\\') || normalized.startsWith('\\??\\')) {
+  if (normalized.startsWith('\\\\') || normalized.startsWith('\\\\\\\\?\\\\')) {
     throw new AirError('PATH_NOT_ALLOWED', `UNC and device namespace paths are forbidden: "${rawPath}"`);
   }
 

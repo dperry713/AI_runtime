@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { RotatingFileStream } from './rotation.js';
+import { type Clock, SystemClock } from '../util/index.js';
 
 export type MetricLabels = Record<string, string | number | boolean>;
 
@@ -182,6 +183,11 @@ export class MetricsRegistry {
   private counters = new Map<string, Counter>();
   private gauges = new Map<string, Gauge>();
   private histograms = new Map<string, Histogram>();
+  private readonly clock: Clock;
+
+  constructor(clock?: Clock) {
+    this.clock = clock ?? new SystemClock();
+  }
 
   public counter(name: string, help?: string): Counter {
     let c = this.counters.get(name);
@@ -210,7 +216,8 @@ export class MetricsRegistry {
     return h;
   }
 
-  public snapshot(nowIso = new Date().toISOString()): MetricSnapshot {
+  public snapshot(nowIso?: string): MetricSnapshot {
+    const ts = nowIso ?? this.clock.iso();
     const countersOut: Record<string, number> = {};
     for (const c of this.counters.values()) {
       Object.assign(countersOut, c.getAll());
@@ -227,7 +234,7 @@ export class MetricsRegistry {
     }
 
     return {
-      ts: nowIso,
+      ts,
       counters: countersOut,
       gauges: gaugesOut,
       histograms: histogramsOut,

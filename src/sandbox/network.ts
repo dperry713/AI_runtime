@@ -29,6 +29,7 @@ import dns from 'node:dns/promises';
 import { AirError } from '../errors/index.js';
 import { getLogger, type ComponentLogger } from '../observability/index.js';
 import { parseIpv4ToUint32, isPrivateOrReservedIpv4 } from '../util/index.js';
+import { type Clock, SystemClock } from '../util/index.js';
 
 const defaultLogger = getLogger('egress-proxy');
 
@@ -297,9 +298,10 @@ export class EgressProxy {
   private readonly sockets = new Set<net.Socket | Duplex>();
   private readonly options: EgressProxyOptions;
   private readonly logger: ComponentLogger;
+  private readonly clock: Clock;
   private listeningPort = 0;
 
-  constructor(options: EgressProxyOptions = {}) {
+  constructor(options: EgressProxyOptions = {}, clock?: Clock) {
     this.options = {
       timeoutMs: 15_000,
       allowLoopback: false,
@@ -307,6 +309,7 @@ export class EgressProxy {
       ...options,
     };
     this.logger = options.logger ?? defaultLogger;
+    this.clock = clock ?? new SystemClock();
   }
 
   /**
@@ -424,7 +427,7 @@ export class EgressProxy {
 
     const decision = await evaluateEgressPolicy(targetHost, targetPort, this.options);
     this.options.onEvent?.({
-      timestamp: new Date().toISOString(),
+      timestamp: this.clock.iso(),
       method: req.method ?? 'GET',
       host: targetHost,
       port: targetPort,
@@ -493,7 +496,7 @@ export class EgressProxy {
 
     const decision = await evaluateEgressPolicy(host, port, this.options);
     this.options.onEvent?.({
-      timestamp: new Date().toISOString(),
+      timestamp: this.clock.iso(),
       method: 'CONNECT',
       host,
       port,

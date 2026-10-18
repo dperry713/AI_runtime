@@ -92,6 +92,11 @@ describe('validatePathSyntax', () => {
     expect(() => validatePathSyntax('//./pipe/test')).toThrow();
   });
 
+  it('rejects extended-length \\\\?\\ prefix paths', () => {
+    expect(() => validatePathSyntax('\\\\\\\\?\\C:\\dev\\file.txt')).toThrow();
+    expect(() => validatePathSyntax('\\\\\\\\?\\C:\\')).toThrow();
+  });
+
   it('rejects Windows reserved device names with arbitrary extensions', () => {
     expect(() => rejectUnsafeName('aux.json')).toThrow();
     expect(() => rejectUnsafeName('prn.txt')).toThrow();

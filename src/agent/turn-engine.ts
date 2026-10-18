@@ -668,7 +668,7 @@ export class TurnEngine {
             };
           }
 
-          // 6. Tool execution via ToolExecutor
+          // 6. Tool execution via ToolExecutor (pass precomputed decisionId to avoid re-evaluation)
           try {
             const execRes = await this.toolExecutor.execute({
               tool,
@@ -678,6 +678,7 @@ export class TurnEngine {
               agentId: this.manifest.id,
               workspaceRoot: this.workspaceRoot,
               signal: callSignal,
+              precomputedDecisionId: effectiveDecisionId,
             });
 
             this.budgetTracker.recordToolCall(this.runId, toolName);

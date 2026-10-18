@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as readline from 'node:readline';
 import type { LogRecord } from './streams.js';
-
+import { type Clock, SystemClock } from '../util/index.js';
 export const GENESIS_HASH = '0'.repeat(64);
 
 export interface AuditRecord extends LogRecord {
@@ -82,8 +82,10 @@ export class AuditLog {
   private currentSeq = 0;
   private headHash: string = GENESIS_HASH;
   private fd: number | null = null;
+  private readonly clock: Clock;
 
-  constructor(public readonly filePath: string) {
+  constructor(public readonly filePath: string, clock?: Clock) {
+    this.clock = clock ?? new SystemClock();
     const dir = path.dirname(filePath);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
@@ -173,7 +175,7 @@ export class AuditLog {
   public seal(): AuditRecord {
     return this.append({
       v: 1,
-      ts: new Date().toISOString(),
+      ts: this.clock.iso(),
       level: 'info',
       stream: 'audit',
       component: 'observability.audit',

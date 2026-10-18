@@ -217,16 +217,17 @@ export async function inspectSegmentFile(filePath: string): Promise<SegmentInspe
  */
 export async function repairSegmentFile(
   filePath: string,
-  options?: { quarantineDir?: string | undefined },
+  options?: { quarantineDir?: string | undefined; clock?: Clock | undefined },
 ): Promise<SegmentRepairResult> {
   const resolvedPath = canonicalize(filePath);
   const inspection = await inspectSegmentFile(resolvedPath);
+  const clock = options?.clock ?? new SystemClock();
 
   if (inspection.hasMidFileCorruption) {
     const quarantineBase = options?.quarantineDir ?? path.join(path.dirname(resolvedPath), '.quarantine');
     await fs.promises.mkdir(quarantineBase, { recursive: true });
 
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const timestamp = clock.iso().replace(/[:.]/g, '-');
     const quarantineName = `${inspection.fileName}.${timestamp}.quarantine`;
     const quarantinePath = canonicalize(path.join(quarantineBase, quarantineName));
 
@@ -521,7 +522,7 @@ export async function recoverJournal(options: RecoveryOptions): Promise<Recovery
 
   // 2. Repair each segment
   for (const file of segmentFiles) {
-    const repair = await repairSegmentFile(file, { quarantineDir });
+    const repair = await repairSegmentFile(file, { quarantineDir, clock });
 
     if (repair.action === 'truncated') {
       report.repairedSegments++;

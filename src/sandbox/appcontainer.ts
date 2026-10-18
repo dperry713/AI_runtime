@@ -20,6 +20,7 @@ import crypto from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { AirError } from '../errors/index.js';
 import { getLogger, type ComponentLogger } from '../observability/index.js';
+import { type Clock, SystemClock } from '../util/index.js';
 
 const defaultLogger = getLogger('appcontainer');
 
@@ -114,9 +115,11 @@ export function isAppContainerSupported(): boolean {
 export class AppContainerManager {
   private readonly profiles = new Map<string, AppContainerProfile>();
   private readonly logger: ComponentLogger;
+  private readonly clock: Clock;
 
-  constructor(logger?: ComponentLogger) {
+  constructor(logger?: ComponentLogger, clock?: Clock) {
     this.logger = logger ?? defaultLogger;
+    this.clock = clock ?? new SystemClock();
   }
 
   /**
@@ -143,7 +146,7 @@ export class AppContainerManager {
       description: options.description,
       sid,
       capabilities,
-      createdAt: new Date().toISOString(),
+      createdAt: this.clock.iso(),
     };
 
     this.profiles.set(name, profile);
