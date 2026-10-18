@@ -27,6 +27,10 @@ export {
   type IpcConfig,
   ConcurrencyConfigSchema,
   type ConcurrencyConfig,
+  MemoryEmbeddingsConfigSchema,
+  type MemoryEmbeddingsConfig,
+  MemoryConfigSchema,
+  type MemoryConfig,
   AirConfigSchema,
   type AirConfig,
 } from './schema.js';

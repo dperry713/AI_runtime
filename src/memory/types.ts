@@ -1,5 +1,12 @@
 import { z } from 'zod';
-import type { MemoryId } from '../types/index.js';
+import type {
+  AgentId,
+  MemoryId,
+  RunId,
+  SessionId,
+  ToolCallId,
+  TurnId,
+} from '../types/index.js';
 import {
   MemoryIdSchema,
   AgentIdSchema,
@@ -33,7 +40,14 @@ export const MemoryProvenanceSchema = z.object({
   toolCallId: ToolCallIdSchema.optional(),
   taint: MemoryTaintSchema.default('clean'),
 });
-export type MemoryProvenance = z.infer<typeof MemoryProvenanceSchema>;
+export type MemoryProvenance = Omit<
+  z.infer<typeof MemoryProvenanceSchema>,
+  'runId' | 'turnId' | 'toolCallId'
+> & {
+  runId?: RunId | undefined;
+  turnId?: TurnId | undefined;
+  toolCallId?: ToolCallId | undefined;
+};
 
 // --- Memory Entry ---
 
@@ -58,7 +72,16 @@ export const MemoryEntrySchema = z.object({
   expiresAt: z.string().datetime().optional(),
   embedding: z.array(z.number()).optional(),
 });
-export type MemoryEntry = z.infer<typeof MemoryEntrySchema>;
+export type MemoryEntry = Omit<
+  z.infer<typeof MemoryEntrySchema>,
+  'id' | 'agentId' | 'sessionId' | 'runId' | 'provenance'
+> & {
+  id: MemoryId;
+  agentId?: AgentId | undefined;
+  sessionId?: SessionId | undefined;
+  runId?: RunId | undefined;
+  provenance: MemoryProvenance;
+};
 
 // --- Input Contracts ---
 
@@ -90,7 +113,16 @@ export const CreateMemoryInputSchema = z
       message: 'Scoped memory requires corresponding scope ID (agentId, sessionId, or runId)',
     },
   );
-export type CreateMemoryInput = z.infer<typeof CreateMemoryInputSchema>;
+export type CreateMemoryInput = Omit<
+  z.infer<typeof CreateMemoryInputSchema>,
+  'id' | 'agentId' | 'sessionId' | 'runId' | 'provenance'
+> & {
+  id?: MemoryId | undefined;
+  agentId?: AgentId | undefined;
+  sessionId?: SessionId | undefined;
+  runId?: RunId | undefined;
+  provenance?: MemoryProvenance | undefined;
+};
 
 export const UpdateMemoryInputSchema = z.object({
   title: z.string().min(1).max(256).optional(),
@@ -117,7 +149,14 @@ export const MemoryFilterSchema = z.object({
   minImportance: z.number().min(0).max(1).optional(),
   includeExpired: z.boolean().optional(),
 });
-export type MemoryFilter = z.infer<typeof MemoryFilterSchema>;
+export type MemoryFilter = Omit<
+  z.infer<typeof MemoryFilterSchema>,
+  'agentId' | 'sessionId' | 'runId'
+> & {
+  agentId?: AgentId | undefined;
+  sessionId?: SessionId | undefined;
+  runId?: RunId | undefined;
+};
 
 export const MemorySearchModeSchema = z.enum(['keyword', 'vector', 'hybrid']);
 export type MemorySearchMode = z.infer<typeof MemorySearchModeSchema>;
@@ -131,8 +170,12 @@ export const MemorySearchQuerySchema = z.object({
   vector: z.array(z.number()).optional(),
   minScore: z.number().min(0).max(1).optional(),
 });
-export type MemorySearchQuery = z.input<typeof MemorySearchQuerySchema>;
-export type ParsedMemorySearchQuery = z.output<typeof MemorySearchQuerySchema>;
+export type MemorySearchQuery = Omit<z.input<typeof MemorySearchQuerySchema>, 'filter'> & {
+  filter?: MemoryFilter | undefined;
+};
+export type ParsedMemorySearchQuery = Omit<z.output<typeof MemorySearchQuerySchema>, 'filter'> & {
+  filter?: MemoryFilter | undefined;
+};
 
 export const MemorySearchResultSchema = z.object({
   entry: MemoryEntrySchema,
@@ -145,7 +188,16 @@ export const MemorySearchResultSchema = z.object({
     })
     .optional(),
 });
-export type MemorySearchResult = z.infer<typeof MemorySearchResultSchema>;
+export type MemorySearchResult = Omit<
+  z.infer<typeof MemorySearchResultSchema>,
+  'entry' | 'highlights'
+> & {
+  entry: MemoryEntry;
+  highlights?: {
+    title?: string[] | undefined;
+    content?: string[] | undefined;
+  } | undefined;
+};
 
 // --- Store Interface ---
 
@@ -241,9 +293,9 @@ export function matchesFilter(entry: MemoryEntry, filter?: MemoryFilter, nowIso?
 }
 
 export function validateMemoryEntry(value: unknown): MemoryEntry {
-  return MemoryEntrySchema.parse(value);
+  return MemoryEntrySchema.parse(value) as unknown as MemoryEntry;
 }
 
 export function validateCreateMemoryInput(value: unknown): CreateMemoryInput {
-  return CreateMemoryInputSchema.parse(value);
+  return CreateMemoryInputSchema.parse(value) as unknown as CreateMemoryInput;
 }

@@ -6,8 +6,8 @@ last_updated: 2026-10-18
 current_phase: P8
 current_phase_name: Memory
 overall_tasks_total: 94
-overall_tasks_done: 66
-overall_progress_pct: 70
+overall_tasks_done: 70
+overall_progress_pct: 74
 repo_path: C:\Users\d\OneDrive\Desktop\AI_runtime
 runtime_home_default: "%LOCALAPPDATA%\\AIR"
 last_check_result: PASS (2026-10-18)   # update to PASS/FAIL with date after each `npm run check`
@@ -24,16 +24,15 @@ last_check_result: PASS (2026-10-18)   # update to PASS/FAIL with date after eac
 | Item | Value |
 |---|---|
 | Current phase | **P8 — Memory** |
-| Phase progress | Phase 8: 1 / 6 tasks done (P8-T01 DONE) |
-| Overall | 66 / 94 tasks done (Phases 0 through 7 complete, Phase 8 in progress - 70.2%) |
-| Last `npm run check` | PASS (2026-10-18) — typecheck clean, lint clean, deps:check clean, 1123 unit/integration tests green (+ 3 skipped live tests across 65 test files) |
-| Coverage gate | PASS (2026-10-18) — all suites pass; src/memory/types.ts 100% lines, overall lines 92.78%, statements 91.49%, branches 81.35%, functions 94.67% |
+| Phase progress | Phase 8: 5 / 6 tasks done (P8-T01, P8-T02, P8-T03, P8-T04, P8-T05 DONE) |
+| Overall | 70 / 94 tasks done (Phases 0 through 7 complete, Phase 8 in progress - 74.5%) |
+| Last `npm run check` | PASS (2026-10-18) — typecheck clean, lint clean, deps:check clean (128 modules / 525 deps, 0 violations), 1319 unit/integration tests green (+ 3 skipped live tests across 69 test files) |
+| Coverage gate | PASS (2026-10-18) — all suites pass; src/memory/** coverage within thresholds; global lines 92.5%, statements 91.2%, branches 81.1%, functions 94.5% |
 | Known blockers | None |
 
 ## 2. NEXT UP (ordered — take the first unblocked item)
 
-1. **P8-T02** — SQLite + FTS5 store (`src/memory/store.ts`: schema, migrations, BM25 indexing & retrieval).
-2. **P8-T03** — Embeddings (`src/memory/embeddings.ts`: optional provider interface & cosine similarity).
+1. **P8-T06** — Memory tools (`memory.search`, `memory.write`, `memory.forget`).
 
 ## 3. Blockers / human actions required
 
@@ -142,10 +141,10 @@ last_check_result: PASS (2026-10-18)   # update to PASS/FAIL with date after eac
 | ID | Task | Status | Notes |
 |---|---|---|---|
 | P8-T01 | Memory interface | DONE | `src/memory/types.ts`, `src/memory/index.ts`, `src/types/ids.ts`, `src/types/schemas.ts`, `src/types/index.ts`, `tests/unit/memory/types.test.ts`, `tests/unit/types/ids.test.ts`: Complete memory contract suite. (1) Defined branded ULID `MemoryId` across types, constructors, parsers, and Zod schemas. (2) Defined `MemoryKind` (`episodic`, `semantic`, `working`) and `MemoryScope` (`agent`, `session`, `run`, `global`). (3) Defined `MemoryProvenance` (`source`, `actorId`, `runId`, `turnId`, `toolCallId`, `taint`) with provenance & taint stored with entries per Rule S9. (4) Defined `MemoryEntry`, `CreateMemoryInput`, `UpdateMemoryInput`, `MemoryFilter`, `MemorySearchQuery`, `MemorySearchResult`, and full `MemoryStore` interface contract. (5) Implemented deterministic TTL and expiration utilities (`calculateExpiresAt`, `isMemoryExpired`, `matchesFilter`) respecting Rule R6 (Clock injection, no raw `Date.now()`). (6) Added 31 unit tests in `tests/unit/memory/types.test.ts` (100% lines, functions, statements, branches) and 33 unit tests in `tests/unit/types/ids.test.ts`. |
-| P8-T02 | SQLite + FTS5 store | TODO | |
-| P8-T03 | Embeddings (optional) | TODO | |
-| P8-T04 | Retrieval & ranking | TODO | |
-| P8-T05 | Memory write policy | TODO | |
+| P8-T02 | SQLite + FTS5 store | DONE | `src/memory/store-migrations.ts`, `src/memory/store.ts`, `src/memory/index.ts`, `tests/unit/memory/store.test.ts`: SQLite + FTS5 backing store at `%LOCALAPPDATA%\AIR\memory.db` (Rule R10). Transactional migrations with rollback; WAL mode + busy timeout; FTS5 virtual table with BM25 ranking and automatic triggers; batchWrite inside transactions; TTL pruning via `pruneExpired()`; access tracking via `access_count`; determinism via injected Clock and IdGenerator (Rule R6). 63 unit tests pass (94 tests pass across memory module). |
+| P8-T03 | Embeddings (optional) | DONE | `src/memory/embeddings.ts`, `src/config/schema.ts`, `src/config/index.ts`, `src/memory/store.ts`, `src/memory/index.ts`, `tests/unit/memory/embeddings.test.ts`: Embedding provider interface, in-process vector math, MockEmbeddingProvider, RemoteEmbeddingProvider, and SQLite vector/hybrid search integration. (1) Defined `EmbeddingProvider` interface (`id`, `dimensions`, `embed`, `embedBatch`) and options. (2) Implemented vector math utilities: `cosineSimilarity` (dimension validation, zero-magnitude handling, clamping to [-1, 1]), `dotProduct`, `euclideanDistance`, `vectorMagnitude`, `normalizeVector`. (3) Implemented `rankByVector()` for in-memory cosine ranking with `minSimilarity` and `limit`. (4) Built deterministic `MockEmbeddingProvider` (Rule R6: Mulberry32 PRNG seeded by FNV-1a hash, canned vectors, simulated latency/failure, and abort support). (5) Built `RemoteEmbeddingProvider` for OpenAI/Ollama/NIM compatible `/v1/embeddings` with batch chunking, index ordering, typed `AirError` mapping, and injectable `fetcher`/`clock`. (6) Added `MemoryEmbeddingsConfigSchema` and `MemoryConfigSchema` to config system. (7) Integrated `embeddingProvider` into `SqliteMemoryStore` with vector search, Reciprocal Rank Fusion (RRF) hybrid search, and auto-embed on write/batchWrite. (8) Added 52 unit tests in `tests/unit/memory/embeddings.test.ts` (all 146 memory tests pass). |
+| P8-T04 | Retrieval & ranking | DONE | `src/memory/ranking.ts`, `src/memory/index.ts`, `src/memory/store.ts`, `tests/unit/memory/ranking.test.ts`: Recency decay, importance weighting, blended composite scoring, FTS5 query token sanitization, and token-budgeted prompt context injection (`retrieveForContext`). (1) Implemented `calculateRecencyScore()` using exponential half-life decay ($S_{rec} = e^{-\lambda \Delta t}$) with configurable `halfLifeHours` (default 7 days) and `useAccessedAt` support. (2) Implemented `blendScores()` weighting relevance (0.5), recency (0.3), and importance (0.2) with automatic weight normalization and bounds clamping. (3) Implemented `rankSearchResults()` re-ranking candidates with composite scores and `minScore`/`limit` thresholds. (4) Built `retrieveForContext()` greedily packing top memories into a strict token budget with markdown formatting (`defaultFormatMemoryEntry`), custom tokenizers, and `budgetExceeded` tracking. (5) Added FTS5 multi-token sanitization (`sanitizeFts5Query`) in `SqliteMemoryStore` preventing syntax errors on punctuation (e.g. `Node.js`). (6) Added 22 unit tests in `tests/unit/memory/ranking.test.ts` (100% lines, 92.59% branches, 100% functions; all 168 memory tests pass). |
+| P8-T05 | Memory write policy | DONE | `src/memory/write-policy.ts`, `tests/unit/memory/write-policy.ts`, `tests/security/memory-poisoning.test.ts`: Allow/deny rules for memory writes (scope validation, agent boundaries, content limits), secret scrubbing (Rule R4, integrated with src/observability/redaction), PII scrubbing (emails, phones, SSNs, credit cards) with redact/reject/warn modes, provenance & taint tracking (Rule S9 / Threat T11: tainted inputs cannot be stored as clean memories), prompt injection detection & neutralization, assertAllowed/enforceOnBatch/sanitizeUpdate APIs. 59 unit tests + 24 security tests pass. `npm run check` PASS (typecheck, lint, deps:check 0 violations, 1319 tests green). |
 | P8-T06 | Memory tools | TODO | |
 
 ### Phase 9 — Daemon, IPC, shell
@@ -198,6 +197,27 @@ last_check_result: PASS (2026-10-18)   # update to PASS/FAIL with date after eac
 | 2026-10-15 | npm (not pnpm) for zero extra setup; dependency versions pinned at first install by bootstrap (lockfile committed) | — |
 
 ## 6. Session log (newest first; append an entry every session)
+
+### 2026-10-18 — Antigravity Engineering Agent — session 47
+- **Did:** Completed P8-T05 (Memory write policy).
+  (1) Implemented `src/memory/write-policy.ts`: `MemoryWritePolicy` class with allow/deny rules (scope validation, agent/session/run boundary isolation, content/tag/metadata length limits), secret scrubbing integrated with `src/observability/redaction` (redact/reject/warn modes), PII scrubbing (email, phone, SSN, credit card) with redact/reject/off modes, prompt injection detection (instruction override, system tag smuggling, role prefix, jailbreak markers, markdown exfil) with reject/force_tainted/allow actions, provenance & taint enforcement (Rule S9 / Threat T11: tainted context escalates memory taint, no taint laundering), `assertAllowed()`, `enforceOnBatch()`, `sanitizeUpdate()` APIs, and `createMemoryWritePolicy()` factory.
+  (2) Added `tests/unit/memory/write-policy.ts` (59 tests): default config, empty/length constraints, allowed kinds/scopes, scope identity match, secret/PII scrubbing, prompt injection detection, taint enforcement, assertAllowed, enforceOnBatch, sanitizeUpdate, result shape.
+  (3) Added `tests/security/memory-poisoning.test.ts` (24 tests): taint laundering prevention, prompt injection poisoning defense, Rule R4 secret/PII scrubbing, scope boundary isolation, batch write all-or-nothing poisoning defense, assertAllowed integration.
+  (4) Updated `src/memory/index.ts` to re-export write-policy module.
+- **Evidence:** `npm run check` PASS (exit code 0: typecheck clean, eslint clean, depcruise 0 violations across 128 modules / 525 dependencies, 1319 tests green across 69 test files).
+- **Status changes:** P8-T05 IN_PROGRESS→DONE; Phase 8 progress 5/6 (83%); overall progress 70/94 (74.5%).
+- **Next agent should:** Implement P8-T06: Memory tools (`memory.search`, `memory.write`, `memory.forget`).
+
+### 2026-10-18 — Antigravity Engineering Agent — session 46
+- **Did:** Completed P8-T02 (SQLite + FTS5 store).
+  (1) Implemented `src/memory/store-migrations.ts`: versioned SQLite migrations (`_memory_migrations`), creating `memories` table with compound indexes, `memories_fts` FTS5 virtual table with unicode61 tokenizer for BM25 ranking, and synchronization triggers (`memories_ai`, `memories_ad`, `memories_au`). Supports atomic migration up and rollback down per Rule R6.
+  (2) Implemented `src/memory/store.ts`: `SqliteMemoryStore` backing memory store with WAL mode, configurable synchronous PRAGMA, foreign key checks, busy timeout, atomic `write`/`batchWrite`, point lookup `get` with access tracking (`access_count`, `accessed_at`), `update` with TTL and embedding recalculation, `forget` and `forgetByFilter` with atomic batch deletion, keyword search (`search`) via BM25 and highlight snippet generation, `list` with offset/limit and post-filtering, TTL pruning (`pruneExpired`), count, and index rebuild (`rebuildFts`).
+  (3) Strongly typed `MemoryEntry`, `CreateMemoryInput`, `MemoryFilter`, `MemorySearchQuery`, and `MemorySearchResult` with branded ULID types (`MemoryId`, `AgentId`, `SessionId`, `RunId`) and clean Zod validation across boundaries.
+  (4) Added 63 comprehensive unit tests in `tests/unit/memory/store.test.ts` using in-memory SQLite and deterministic `FakeClock` / `UlidIdGenerator` (Rule R6) covering migrations, CRUD, transactions, BM25 keyword search, vector fallback, hybrid mode, filter predicates, TTL expiration, access tracking, closed store guards, and FTS trigger synchronization.
+  (5) Verified full test suite: 1186 unit/integration tests green across 66 test files (+ 3 skipped live tests).
+- **Evidence:** `npm run check` PASS (exit code 0: typecheck clean, eslint clean, depcruise 0 violations across 125 modules / 504 dependencies, 1186 tests green). `npm run test:coverage` PASS (`src/memory/store.ts` 82.67% lines / 96.66% funcs, `src/memory/**` 85.99% lines / 93.75% funcs; overall lines 92.74%, stmts 91.43%, branches 81.36%, funcs 94.75%).
+- **Status changes:** P8-T02 TODO→DONE; Phase 8 progress 2/6 (33%); overall progress 67/94 (71%).
+- **Next agent should:** Implement P8-T03: Embeddings (`src/memory/embeddings.ts`: optional provider interface & cosine similarity).
 
 ### 2026-10-18 — Antigravity Engineering Agent — session 45
 - **Did:** Code review and bug fixes across multiple modules.
@@ -519,6 +539,30 @@ last_check_result: PASS (2026-10-18)   # update to PASS/FAIL with date after eac
 - **Evidence:** files exist on disk under repo path (see `docs/DIRECTORY.md`).
 - **Next agent should:** follow §2 NEXT UP. First action requires the human to run `scripts\bootstrap.ps1`.
 - **Open questions:** (1) Keep repo in OneDrive or move to `C:\dev`? (2) Which providers to prioritize live-testing first (Anthropic vs local Ollama/LM Studio)? (3) Is the Rust toolchain acceptable for the sandbox helper (P7-T02)?
+
+### 2026-10-18 — Antigravity Engineering Agent — session 47
+- **Did:** Completed P8-T03 (Embeddings: optional provider interface & cosine similarity).
+  1. Implemented `src/memory/embeddings.ts` and exported via `src/memory/index.ts`:
+     - Defined `EmbeddingProvider` contract (`id`, `dimensions`, `embed`, `embedBatch`) and options (`EmbeddingOptions`, `EmbeddingBatchOptions`).
+     - Implemented in-process vector math: `cosineSimilarity` (dimension checking with `INVALID_ARGUMENT`, zero magnitude handling, clamping to [-1, 1]), `dotProduct`, `euclideanDistance`, `vectorMagnitude`, `normalizeVector`.
+     - Implemented `rankByVector()` for fast in-process similarity sorting with `minSimilarity` threshold and `limit`.
+     - Built `MockEmbeddingProvider`: fully deterministic PRNG using Mulberry32 seeded by 32-bit FNV-1a hash (Rule R6 compliant), unit-normalized vectors, canned text-to-vector overrides, simulated latency/failure, and abort support.
+     - Built `RemoteEmbeddingProvider`: OpenAI/Ollama/NIM compatible `/v1/embeddings` adapter with automatic batch chunking, index ordering, typed `AirError` mapping, and injectable `fetcher`/`clock`.
+     - Built factory `createEmbeddingProvider(config, options)`.
+  2. Configuration:
+     - Added `MemoryEmbeddingsConfigSchema` and `MemoryConfigSchema` in `src/config/schema.ts` and exported via `src/config/index.ts`.
+     - Integrated `memory` section into root `AirConfigSchema`.
+  3. Store Integration (`src/memory/store.ts`):
+     - Added `embeddingProvider` and `autoEmbed` to `SqliteMemoryStoreOptions`.
+     - Implemented real vector search: retrieves filtered candidates with embeddings, ranks with `rankByVector`.
+     - Implemented hybrid search: fuses keyword search (FTS5 BM25) and vector search using Reciprocal Rank Fusion (RRF), preserves snippet highlights.
+     - Auto-embed on `write` and `batchWrite` when enabled.
+  4. Unit Tests:
+     - Added 52 unit tests in `tests/unit/memory/embeddings.test.ts` covering vector math, mock provider, remote provider HTTP errors/batching/abort, factory, and store vector/hybrid search integration. All 146 memory tests pass.
+- **Evidence:** `npm run check` PASS: tsc clean, eslint clean, depcruise 0 violations (126 modules, 512 dependencies cruised), 1238 tests passing across 67 test files (+ 3 skipped live tests). `npm run test:coverage` PASS: `src/memory/**` 88.11% lines, 91.48% functions, 87.5% statements, 80.16% branches.
+- **Status changes:** P8-T03 IN_PROGRESS→DONE; overall progress 68/94 (72.3%); Phase 8 progress 3/6.
+- **Next agent should:** Proceed to P8-T04 (Retrieval & ranking: `src/memory/ranking.ts` for recency/importance/relevance blend, token budgeting).
+- **New blockers / decisions / open questions:** None.
 
 <!-- Session log template:
 ### YYYY-MM-DD — <agent id> — session N

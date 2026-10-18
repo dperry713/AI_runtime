@@ -83,6 +83,22 @@ export const ConcurrencyConfigSchema = z.object({
 });
 export type ConcurrencyConfig = z.infer<typeof ConcurrencyConfigSchema>;
 
+export const MemoryEmbeddingsConfigSchema = z.object({
+  enabled: z.boolean().default(false),
+  provider: z.enum(['mock', 'openai-compat', 'ollama']).default('mock'),
+  model: z.string().default('text-embedding-3-small'),
+  dimensions: z.number().int().positive().default(1536),
+  baseUrl: z.string().url().or(z.string().regex(/^https?:\/\//)).optional(),
+  apiKeySecret: z.string().optional(),
+});
+export type MemoryEmbeddingsConfig = z.infer<typeof MemoryEmbeddingsConfigSchema>;
+
+export const MemoryConfigSchema = z.object({
+  dbPath: z.string().optional(),
+  embeddings: MemoryEmbeddingsConfigSchema.default(() => MemoryEmbeddingsConfigSchema.parse({})),
+});
+export type MemoryConfig = z.infer<typeof MemoryConfigSchema>;
+
 export const AirConfigSchema = z.object({
   version: z.literal(1).default(1),
   logging: LoggingConfigSchema.default(() => LoggingConfigSchema.parse({})),
@@ -93,6 +109,7 @@ export const AirConfigSchema = z.object({
   sandbox: SandboxConfigSchema.default(() => SandboxConfigSchema.parse({})),
   ipc: IpcConfigSchema.default(() => IpcConfigSchema.parse({})),
   concurrency: ConcurrencyConfigSchema.default(() => ConcurrencyConfigSchema.parse({})),
+  memory: MemoryConfigSchema.default(() => MemoryConfigSchema.parse({})),
 });
 
 export type AirConfig = z.infer<typeof AirConfigSchema>;
