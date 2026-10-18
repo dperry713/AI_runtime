@@ -11,7 +11,7 @@
 
 import { z } from 'zod';
 import type { ProcessRunner } from '../../sandbox/index.js';
-import { NaiveProcessRunner } from '../../sandbox/index.js';
+import { StandardProcessRunner } from '../../sandbox/index.js';
 import {
   type AnyTool,
   defineTool,
@@ -50,7 +50,7 @@ export type ExecRunOutput = z.infer<typeof ExecRunOutputSchema>;
 export function createExecRunTool(
   customRunner?: ProcessRunner,
 ): ToolDefinition<ExecRunInput, ExecRunOutput> {
-  const runner = customRunner ?? new NaiveProcessRunner();
+  const runner = customRunner ?? new StandardProcessRunner();
 
   return defineTool({
     name: 'exec.run',

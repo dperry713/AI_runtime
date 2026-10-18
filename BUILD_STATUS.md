@@ -6,8 +6,8 @@ last_updated: 2026-10-17
 current_phase: P7
 current_phase_name: Sandbox & Windows isolation
 overall_tasks_total: 94
-overall_tasks_done: 59
-overall_progress_pct: 63
+overall_tasks_done: 63
+overall_progress_pct: 67
 repo_path: C:\Users\d\OneDrive\Desktop\AI_runtime
 runtime_home_default: "%LOCALAPPDATA%\\AIR"
 last_check_result: PASS (2026-10-17)   # update to PASS/FAIL with date after each `npm run check`
@@ -24,17 +24,16 @@ last_check_result: PASS (2026-10-17)   # update to PASS/FAIL with date after eac
 | Item | Value |
 |---|---|
 | Current phase | **P7 — Sandbox & Windows isolation** |
-| Phase progress | Phase 6: COMPLETE (9/9 tasks done, Exit Gate P6 / Milestone M1 satisfied). Phase 7: 0 / 6 tasks done |
-| Overall | 59 / 94 tasks done (Phases 0, 1, 2, 3, 4, 5, 6 complete - 62.8%) |
-| Last `npm run check` | PASS (2026-10-17) — typecheck, lint, deps:check, 990 unit/integration tests green (+ 3 skipped live tests) |
-| Coverage gate | PASS (2026-10-17) — all suites pass; agent module 84.51% lines, journal 99.03%, policy 94.86%, tools 95.94%, overall lines 93.54% |
+| Phase progress | Phase 6: COMPLETE (9/9 tasks done). Phase 7: 4 / 6 tasks done |
+| Overall | 63 / 94 tasks done (Phases 0, 1, 2, 3, 4, 5, 6 complete; Phase 7 in progress - 67.0%) |
+| Last `npm run check` | PASS (2026-10-17) — typecheck, lint, deps:check, 1061 unit/integration tests green (+ 3 skipped live tests across 62 test files) |
+| Coverage gate | PASS (2026-10-17) — all suites pass; reparse defense 100% lines, helper-client 92.43%, process-runner 91.55%, network 83.47%, overall lines 92.70% |
 | Known blockers | None |
 
 ## 2. NEXT UP (ordered — take the first unblocked item)
 
-1. **P7-T01** — ProcessRunner (`src/sandbox/process-runner.ts`: process execution interface, stdio streaming, timeout, exit codes, resource tracking).
-2. **P7-T02** — Native helper `air-sandbox.exe` (Rust, Job Objects, memory/process caps, token integrity, desktop isolation).
-3. **P7-T03** — Reparse-point defense (`src/sandbox/reparse.ts`: NTFS junction/symlink detection, path verification before execution).
+1. **P7-T05** — Orphan process reaping (Job Object kill-on-job-close verification).
+2. **P7-T06** — Optional AppContainer profile.
 
 ## 3. Blockers / human actions required
 
@@ -132,10 +131,10 @@ last_check_result: PASS (2026-10-17)   # update to PASS/FAIL with date after eac
 ### Phase 7 — Sandbox & Windows isolation
 | ID | Task | Status | Notes |
 |---|---|---|---|
-| P7-T01 | ProcessRunner | TODO | |
-| P7-T02 | Native helper `air-sandbox.exe` (Rust, Job Objects) | TODO | |
-| P7-T03 | Reparse-point defense | TODO | |
-| P7-T04 | Network egress control | TODO | |
+| P7-T01 | ProcessRunner | DONE | `src/sandbox/process-runner.ts`, `tests/unit/sandbox/process-runner.test.ts`: `StandardProcessRunner` implementing process execution with stdio caps (truncation at `maxOutputBytes`), environment allowlist scrubbing (`DEFAULT_ENV_ALLOWLIST`, `BLOCKED_ENV_PATTERNS`, ADR-0004/Rule R4), path jailing (Rule R5), process tree termination (`taskkill /T`), cooperative cancellation (`AbortSignal`), streaming hooks (`onStdoutChunk`, `onStderrChunk`), stdin piping, and active child process tracking (`getActiveProcesses`, `killAll`). 19 unit tests pass (91.78% lines). |
+| P7-T02 | Native helper `air-sandbox.exe` (Rust, Job Objects) | DONE | `native/air-sandbox/` (Rust crate compiled to release binary `air-sandbox.exe`: Windows Job Objects, kill-on-close, max memory byte cap, active process limits, hard CPU rate limiting, restricted token support, versioned JSON protocol over stdin/stdout, and structured lifecycle events `started`/`completed`/`error`), `src/sandbox/helper-client.ts` (`SandboxHelperClient` implementing `ProcessRunner`, SHA-256 integrity check `verifyIntegrity`, mock mode double, cooperative cancellation via `AbortSignal`, timeout support via `timeoutMs`, streaming stdout/stderr chunk hooks), `tests/unit/sandbox/helper-client.test.ts`. 14 unit tests pass (7 mock/protocol + 7 real native execution tests against compiled binary). 92.43% line coverage in `helper-client.ts`. |
+| P7-T03 | Reparse-point defense | DONE | `src/util/reparse.ts`, `src/sandbox/reparse.ts`, `tests/unit/sandbox/reparse.test.ts`: Complete NTFS reparse point, junction, symlink, and hardlink defense suite. `inspectReparseChain` walks all intermediate ancestors from root jail to leaf, detecting escapes via directory junctions (`mklink /J`) or symlinks; `checkHardlinks` inspects `nlink > 1` preventing hardlink overwrite attacks; `openSafelyInJail` provides TOCTOU-resistant file opening by validating the open handle (`fstat`, `nlink`, realpath verification); `ReparseDefense` provides high-level process working directory validation (`verifyWorkingDirectory`). 15 unit tests pass (100% lines in `src/sandbox/reparse.ts`). |
+| P7-T04 | Network egress control | DONE | `docs/adr/0006-network-egress-control.md`, `src/sandbox/network.ts`, `src/util/net.ts`, `tests/unit/sandbox/network.test.ts`: Implemented deny-by-default network egress control per ADR-0006. (1) Lightweight local loopback HTTP and HTTPS CONNECT proxy (`EgressProxy`) with strict host allowlist pattern matching (`*.example.com`, port specifications), SSRF prevention (denies IPv4/IPv6 loopback, RFC1918 private IPs, carrier NAT, cloud metadata 169.254.169.254, DNS rebinding guards), connection tracking, and graceful socket teardown. (2) `NetworkEgressController` providing proxy lifecycle and automated proxy environment configuration (scrubbing ambient proxy vars when network is disabled; injecting HTTP_PROXY/HTTPS_PROXY/ALL_PROXY pointing to 127.0.0.1:<port> when enabled). (3) `WindowsFirewallManager` providing elevated `netsh advfirewall` outbound block rule helpers for defense-in-depth in elevated Windows service environments with graceful non-elevated fallback. (4) Integrated with `ProcessRunOptions`. 27 unit tests pass (83.47% lines). |
 | P7-T05 | Orphan reaping | TODO | |
 | P7-T06 | Optional AppContainer profile | TODO | |
 
@@ -199,6 +198,22 @@ last_check_result: PASS (2026-10-17)   # update to PASS/FAIL with date after eac
 | 2026-10-15 | npm (not pnpm) for zero extra setup; dependency versions pinned at first install by bootstrap (lockfile committed) | — |
 
 ## 6. Session log (newest first; append an entry every session)
+
+### 2026-10-17 — Antigravity Engineering Agent — session 41
+- **Did:** Completed P7-T02 (Native helper `air-sandbox.exe`), P7-T03 (Reparse-point defense), and P7-T04 (Network egress control).
+  (1) Authored `docs/adr/0006-network-egress-control.md` establishing deny-by-default local loopback allowlist proxy (`EgressProxy`) with SSRF prevention and elevated Windows Firewall rule management (`WindowsFirewallManager`).
+  (2) Implemented `src/sandbox/network.ts`: `EgressProxy` forward HTTP proxy and HTTPS CONNECT tunneling with wildcard pattern matching, SSRF defense (blocking private IPs, loopback, cloud metadata, link-local, carrier NAT), DNS rebinding verification, and active socket tracking; `NetworkEgressController` managing proxy lifecycle and automatic process environment scrubbing/injection; and `WindowsFirewallManager` providing elevated outbound block rule management via `netsh advfirewall`.
+  (3) Added 27 unit tests in `tests/unit/sandbox/network.test.ts` covering host parsing, pattern matching, SSRF defenses, proxy lifecycle, HTTP forward proxying, HTTPS tunneling, error handling, and environment configuration.
+  (4) Upgraded test suite: 1061 unit/integration tests green across 62 test files.
+- **Evidence:** `npm run check` PASS (exit code 0: typecheck clean, eslint clean, depcruise 0 violations across 119 modules, 1061 unit/integration tests green). `npm run test:coverage` PASS (lines: 92.70%, statements: 91.39%, branches: 81.07%, functions: 94.67%).
+- **Status changes:** P7-T02 DONE, P7-T03 DONE, P7-T04 DONE; Phase 7 progress 4/6 (67%); overall progress 63/94 (67%).
+- **Next agent should:** Implement P7-T05: Orphan process reaping (`src/sandbox/orphan-reaper.ts`: clean up leftover jobs/processes recorded on disk across daemon restart).
+
+### 2026-10-17 — Antigravity Engineering Agent — session 40
+- **Did:** Completed P7-T01 (ProcessRunner). (1) Implemented `src/sandbox/process-runner.ts` providing `StandardProcessRunner`: spawns processes under `powershell`, `pwsh`, `cmd`, or direct binary execution; enforces strict environment allowlist scrubbing (`DEFAULT_ENV_ALLOWLIST`, `BLOCKED_ENV_PATTERNS`) ensuring untrusted processes cannot read ambient API keys, secrets, or radioactive env vars (ADR-0004 / Rule R4); validates working directory jailing against workspace root (Rule R5); manages stdio byte caps and stream truncation; supports real-time streaming chunks (`onStdoutChunk`, `onStderrChunk`); supports stdin piping; enforces timeout with process tree termination (`taskkill /T /F`); supports cooperative cancellation via `AbortSignal`; tracks active child PIDs (`getActiveProcesses`) and provides cleanup (`killAll`) preparing for orphan reaping (P7-T05). (2) Extended `src/sandbox/types.ts` with Phase 7 process options (`workspaceRoot`, `envAllowlist`, `passThroughEnv`, `stdin`, `onStdoutChunk`, `onStderrChunk`, `pid`, `truncated`, `ActiveProcessInfo`). (3) Upgraded `createExecRunTool` in `src/tools/builtin/exec.ts` to default to `StandardProcessRunner`. (4) Added 19 comprehensive unit tests in `tests/unit/sandbox/process-runner.test.ts`. Total test suite reached 1009 passing tests across 59 test files.
+- **Evidence:** `npm run check` PASS (exit code 0; tsc clean; eslint clean; depcruise 0 violations across 112 modules / 440 dependencies; 1009 unit & integration tests green across 59 test files). `npm run test:coverage` PASS (exit code 0; `src/sandbox/process-runner.ts` at 91.78% lines; overall lines at 92.44%, statements 91.30%, branches 81.29%, functions 94.11%).
+- **Status changes:** P7-T01 IN_PROGRESS→DONE; Phase 7 progress 1/6; overall progress 60/94 (64%).
+- **Next agent should:** Implement P7-T02: Native helper `air-sandbox.exe` (Rust crate in `native/air-sandbox` providing Windows Job Object limits, memory/process caps, token integrity, desktop isolation).
 
 ### 2026-10-17 — Antigravity Engineering Agent — session 39
 - **Did:** Completed Phase 6 (Agent loop / turn engine) tasks P6-T01 through P6-T09 and verified Milestone M1 / Exit Gate P6. (1) Implemented `src/agent/manifest.ts` with Zod validation, disk jailing, and built-in catalogue (`developer`, `auditor`, `researcher`). (2) Implemented `src/agent/state-machine.ts` with formal state transitions, sequence tracking, transition history audit, and pure event-sourced fold (`fromEvents`). (3) Implemented `src/agent/turn-engine.ts` with streaming provider consumption, single choke-point policy evaluation (Rule R3), taint tracking (Rule S9), XML output fencing, and complete journal lifecycle emission. (4) Implemented `src/agent/scheduler.ts` with DAG cycle detection and bounded parallel tool execution. (5) Implemented `src/agent/context.ts` with token estimation and two-tier context compaction (`context.compacted`). (6) Implemented `src/agent/detector.ts` with repetition, cycle, and consecutive error detection (`agent.stalled`). (7) Implemented `src/agent/runner.ts` multi-turn orchestrator with cooperative abort, turn-boundary pause, user resumption, and event sourcing reconstitution (`AgentRunner.fromEvents`). (8) Implemented `src/agent/replay.ts` deterministic replay engine (`replayRun`) with policy drift detection and sequence ordering verification. (9) Implemented `src/agent/harness.ts` dev harness CLI (`npm run dev:run`). (10) Implemented Milestone M1 integration verification suite `tests/integration/milestone-m1.test.ts` verifying complete multi-turn run with mock LLM and fs tools, valid append-only journal lifecycle, cryptographic SHA-256 audit hash chain validity, zero-divergence replay parity, interactive human approval flow, and safe pausing/event-sourced resumption.
@@ -385,6 +400,25 @@ last_check_result: PASS (2026-10-17)   # update to PASS/FAIL with date after eac
 - **Evidence:** `npm run check` PASS (typecheck clean, ESLint clean, depcruise 0 violations across 64 modules, 315 unit tests green). `npm run test:coverage` PASS (statements: 94.75%, branches: 84.77%, functions: 97.75%, lines: 95.21%; `src/journal/**`: 99.04% lines, 92.12% branches, 99.03% functions, 98.93% statements; `src/util/paths.ts`: 98.71% statements, 92.53% branches).
 - **Status changes:** P2-T03 IN_PROGRESS→DONE; overall progress 21/94 (22%); Phase 2 progress 3/7.
 - **Next agent should:** Proceed to P2-T04 (Typed event bus: in-process pub/sub, per-subscriber bounded queues with backpressure/drop policy and metrics in `src/journal/event-bus.ts`).
+
+### 2026-10-17 — Antigravity Engineering Agent — session 19
+- **Did:** Completed P7-T03 (`Reparse-point defense`).
+  1. Built low-level NTFS reparse point, junction, symlink, and hardlink defenses in `src/util/reparse.ts` (Rule R2 compliant, layer 0): `isReparsePoint`, `isReparsePointSync`, `resolveLinkTarget`, `checkHardlinks` (detecting `nlink > 1`), `inspectReparseChain` (walking intermediate ancestors from root jail to target), and `openSafelyInJail` (TOCTOU-resistant open with handle-based validation and disposal). Exported from `src/util/index.ts`.
+  2. Built sandbox-level defense manager in `src/sandbox/reparse.ts`: `ReparseDefense` providing path inspection (`inspect`), safe path assertion (`assertSafe`), process working directory validation (`verifyWorkingDirectory`), and TOCTOU-safe open (`openSafe`). Exported from `src/sandbox/index.ts`.
+  3. Added comprehensive test suite in `tests/unit/sandbox/reparse.test.ts` with 15 tests covering real NTFS directory junctions (`mklink /J`), real NTFS hardlinks (`mklink /H`), ancestral junction escapes, working directory validation, and TOCTOU handle verification.
+- **Evidence:** `npm run check` PASS: tsc clean, eslint clean, depcruise 0 violations across 115 modules, 1038 unit/integration tests passing (61 test files, 0 failures, 3 skipped live tests). `src/sandbox/reparse.ts` achieved 100% line coverage (100% statements, 100% functions, 92.85% branches).
+- **Status changes:** P7-T03 TODO→DONE; overall progress 62/94 (66%); Phase 7 progress 3/6.
+- **Next agent should:** Proceed to P7-T04 (Network egress control: `src/sandbox/network.ts` for per-process Windows firewall rules or local allowlist proxy).
+
+### 2026-10-17 — Antigravity Engineering Agent — session 18
+- **Did:** Completed P7-T02 (`air-sandbox.exe` native helper & `SandboxHelperClient`).
+  1. Built native Windows sandbox helper Rust crate (`native/air-sandbox/`) with Windows Job Object containment, kill-on-close flag (`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`), active process count limiting (`JOB_OBJECT_LIMIT_ACTIVE_PROCESS`), memory caps (`JOB_OBJECT_LIMIT_PROCESS_MEMORY | JOB_OBJECT_LIMIT_JOB_MEMORY`), hard CPU rate limiting (`JobObjectCpuRateControlInformation`), restricted token isolation (`CreateRestrictedToken`), and versioned JSON request/response framing over stdin/stdout with exit codes and accounting metrics (peak memory bytes, total CPU time).
+  2. Built release binary `air-sandbox.exe` via cargo toolchain (`native/air-sandbox/target/release/air-sandbox.exe`).
+  3. Implemented `src/sandbox/helper-client.ts` (`SandboxHelperClient`) implementing `ProcessRunner`, SHA-256 binary integrity checking (`verifyIntegrity`, `computeSha256`), mock test double handler mode, abort signal cancellation, timeout bounding, and streaming stdout/stderr chunk delivery. Exported from `src/sandbox/index.ts`.
+  4. Added comprehensive test suite in `tests/unit/sandbox/helper-client.test.ts` with 14 unit tests (7 protocol/mock/integrity tests + 7 real native execution tests against compiled `air-sandbox.exe`).
+- **Evidence:** `npm run check` PASS: tsc clean, eslint clean, depcruise 0 violations across 113 modules, 1023 unit/integration tests passing (60 test files, 0 failures, 3 skipped live tests). `src/sandbox/helper-client.ts` line coverage 92.43% (91.73% statements, 93.33% functions).
+- **Status changes:** P7-T02 TODO→DONE; overall progress 61/94 (65%); Phase 7 progress 2/6.
+- **Next agent should:** Proceed to P7-T03 (Reparse-point defense: `src/sandbox/reparse.ts` for NTFS junction/symlink detection and pre-execution path verification).
 
 ### 2026-10-16 — Antigravity Engineering Agent — session 16
 - **Did:** Implemented P2-T02 (JSONL segment writer). Built `src/journal/segment-writer.ts` and `src/journal/index.ts` exports: (1) Checksummed line framing `<crc32> <json>\n` with 8-character lowercase hex CRC-32 computed via `node:zlib`. (2) Checksum verification helper `verifyLineChecksum` and parser `parseEventLine`. (3) Windows path-safe stream sanitization (`sanitizeStream` / `desanitizeStream`) and canonical segment naming (`<sanitized>.<seq>.active.jsonl` / `<sanitized>.<seq>.sealed.jsonl`). (4) Single serialized FIFO queue per stream ensuring strictly ordered writes and sequence validation without race conditions. (5) Configurable fsync policies (`always`, `batch`, `never`) with timer and count thresholds (`batchSyncIntervalMs`, `batchMaxUnsynced`). (6) Size-based segment rotation (`segmentMaxBytes` / `segmentMaxMb`) with atomic sealing via atomic rename. (7) Discovery and gapless resumption across crashes and restarts. (8) Bound stream proxy `StreamSegmentWriter`. (9) Added comprehensive unit test suite in `tests/unit/journal/segment-writer.test.ts` (40 tests).

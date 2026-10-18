@@ -18,7 +18,7 @@ export default defineConfig({
         'src/kernel/**',
         'src/mcp/**',
         'src/memory/**',
-        'src/sandbox/**',
+        'src/sandbox/naive-runner.ts',
         'src/service/**',
         'src/shell/**',
       ],
