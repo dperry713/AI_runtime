@@ -19,6 +19,7 @@ jobs:
       # node-gyp can mis-detect newer Visual Studio Preview registrations on hosted Windows runners.
       # Pin the installed VS 2022 C++ toolchain for native dependencies such as better-sqlite3.
       GYP_MSVS_VERSION: '2022'
+      npm_config_msvs_version: '2022'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
