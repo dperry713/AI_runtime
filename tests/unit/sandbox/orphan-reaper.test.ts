@@ -11,6 +11,7 @@ import {
   isProcessAlive,
   CHILDREN_REGISTRY_FILENAME,
   CHILDREN_REGISTRY_VERSION,
+  type TrackedChildrenFile,
 } from '../../../src/sandbox/orphan-reaper.js';
 import { StandardProcessRunner } from '../../../src/sandbox/process-runner.js';
 import { FakeClock } from '../../../src/util/index.js';
@@ -66,11 +67,11 @@ describe('Orphan Process Reaper (P7-T05)', () => {
       // Verify file on disk
       const filePath = path.join(tempDir, CHILDREN_REGISTRY_FILENAME);
       expect(fs.existsSync(filePath)).toBe(true);
-      const parsed = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+      const parsed = JSON.parse(fs.readFileSync(filePath, 'utf-8')) as TrackedChildrenFile;
       expect(parsed.version).toBe(CHILDREN_REGISTRY_VERSION);
       expect(parsed.updatedAt).toBe('2026-10-17T12:00:00.000Z');
       expect(parsed.processes).toHaveLength(1);
-      expect(parsed.processes[0].pid).toBe(1234);
+      expect(parsed.processes[0]?.pid).toBe(1234);
     });
 
     it('re-reads persisted records across new OrphanReaper instance', async () => {
@@ -98,9 +99,9 @@ describe('Orphan Process Reaper (P7-T05)', () => {
 
       // Verify disk reflects unregistration
       const filePath = path.join(tempDir, CHILDREN_REGISTRY_FILENAME);
-      const parsed = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+      const parsed = JSON.parse(fs.readFileSync(filePath, 'utf-8')) as TrackedChildrenFile;
       expect(parsed.processes).toHaveLength(1);
-      expect(parsed.processes[0].pid).toBe(3002);
+      expect(parsed.processes[0]?.pid).toBe(3002);
     });
 
     it('rejects invalid PID during registration', async () => {
@@ -209,12 +210,11 @@ describe('Orphan Process Reaper (P7-T05)', () => {
       });
 
       const result = await runner.run({
-        command: 'node',
-        args: ['-e', 'process.stdout.write("hello-orphan")'],
+        command: process.platform === 'win32' ? 'Write-Output "hello-orphan"' : 'echo hello-orphan',
       });
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toBe('hello-orphan');
+      expect(result.stdout.trim()).toBe('hello-orphan');
 
       // Process exited cleanly; registry should be empty
       const active = await reaper.getActiveChildren();

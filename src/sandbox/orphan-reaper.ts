@@ -26,7 +26,7 @@ import {
   SystemClock,
 } from '../util/index.js';
 import { resolveAirHome } from '../config/index.js';
-import { killProcessTree } from './process-runner.js';
+import { killProcessTree } from './process-tree.js';
 
 const defaultLogger = getLogger('orphan-reaper');
 
@@ -279,14 +279,24 @@ export class OrphanReaper {
   private async persist(): Promise<void> {
     // Chain writes to ensure serialized atomic updates
     this.writeLock = this.writeLock.then(async () => {
-      const payload: TrackedChildrenFile = {
-        version: CHILDREN_REGISTRY_VERSION,
-        updatedAt: this.clock.now().toISOString(),
-        processes: Array.from(this.memoryProcesses.values()),
-      };
+      try {
+        const payload: TrackedChildrenFile = {
+          version: CHILDREN_REGISTRY_VERSION,
+          updatedAt: this.clock.now().toISOString(),
+          processes: Array.from(this.memoryProcesses.values()),
+        };
 
-      const json = JSON.stringify(payload, null, 2);
-      await writeFileAtomicIn(this.airHome, CHILDREN_REGISTRY_FILENAME, json);
+        const json = JSON.stringify(payload, null, 2);
+        await writeFileAtomicIn(this.airHome, CHILDREN_REGISTRY_FILENAME, json);
+      } catch (err) {
+        this.logger.warn(
+          {
+            event: 'sandbox.orphan_reaper.persist_failed',
+            err: err instanceof Error ? err : new Error(String(err)),
+          },
+          'Failed to persist orphan reaper children.json',
+        );
+      }
     });
 
     await this.writeLock;

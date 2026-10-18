@@ -2,15 +2,15 @@
 project: AI_runtime
 codename: AIR
 status_schema: 1
-last_updated: 2026-10-17
-current_phase: P7
-current_phase_name: Sandbox & Windows isolation
+last_updated: 2026-10-18
+current_phase: P8
+current_phase_name: Memory
 overall_tasks_total: 94
-overall_tasks_done: 63
-overall_progress_pct: 67
+overall_tasks_done: 66
+overall_progress_pct: 70
 repo_path: C:\Users\d\OneDrive\Desktop\AI_runtime
 runtime_home_default: "%LOCALAPPDATA%\\AIR"
-last_check_result: PASS (2026-10-17)   # update to PASS/FAIL with date after each `npm run check`
+last_check_result: PASS (2026-10-18)   # update to PASS/FAIL with date after each `npm run check`
 ---
 
 # BUILD_STATUS.md — live build tracker
@@ -23,17 +23,17 @@ last_check_result: PASS (2026-10-17)   # update to PASS/FAIL with date after eac
 
 | Item | Value |
 |---|---|
-| Current phase | **P7 — Sandbox & Windows isolation** |
-| Phase progress | Phase 6: COMPLETE (9/9 tasks done). Phase 7: 4 / 6 tasks done |
-| Overall | 63 / 94 tasks done (Phases 0, 1, 2, 3, 4, 5, 6 complete; Phase 7 in progress - 67.0%) |
-| Last `npm run check` | PASS (2026-10-17) — typecheck, lint, deps:check, 1061 unit/integration tests green (+ 3 skipped live tests across 62 test files) |
-| Coverage gate | PASS (2026-10-17) — all suites pass; reparse defense 100% lines, helper-client 92.43%, process-runner 91.55%, network 83.47%, overall lines 92.70% |
+| Current phase | **P8 — Memory** |
+| Phase progress | Phase 8: 1 / 6 tasks done (P8-T01 DONE) |
+| Overall | 66 / 94 tasks done (Phases 0 through 7 complete, Phase 8 in progress - 70.2%) |
+| Last `npm run check` | PASS (2026-10-18) — typecheck clean, lint clean, deps:check clean, 1122 unit/integration tests green (+ 3 skipped live tests across 65 test files) |
+| Coverage gate | PASS (2026-10-18) — all suites pass; src/memory/types.ts 100% lines, overall lines 92.78%, statements 91.49%, branches 81.35%, functions 94.67% |
 | Known blockers | None |
 
 ## 2. NEXT UP (ordered — take the first unblocked item)
 
-1. **P7-T05** — Orphan process reaping (Job Object kill-on-job-close verification).
-2. **P7-T06** — Optional AppContainer profile.
+1. **P8-T02** — SQLite + FTS5 store (`src/memory/store.ts`: schema, migrations, BM25 indexing & retrieval).
+2. **P8-T03** — Embeddings (`src/memory/embeddings.ts`: optional provider interface & cosine similarity).
 
 ## 3. Blockers / human actions required
 
@@ -135,13 +135,13 @@ last_check_result: PASS (2026-10-17)   # update to PASS/FAIL with date after eac
 | P7-T02 | Native helper `air-sandbox.exe` (Rust, Job Objects) | DONE | `native/air-sandbox/` (Rust crate compiled to release binary `air-sandbox.exe`: Windows Job Objects, kill-on-close, max memory byte cap, active process limits, hard CPU rate limiting, restricted token support, versioned JSON protocol over stdin/stdout, and structured lifecycle events `started`/`completed`/`error`), `src/sandbox/helper-client.ts` (`SandboxHelperClient` implementing `ProcessRunner`, SHA-256 integrity check `verifyIntegrity`, mock mode double, cooperative cancellation via `AbortSignal`, timeout support via `timeoutMs`, streaming stdout/stderr chunk hooks), `tests/unit/sandbox/helper-client.test.ts`. 14 unit tests pass (7 mock/protocol + 7 real native execution tests against compiled binary). 92.43% line coverage in `helper-client.ts`. |
 | P7-T03 | Reparse-point defense | DONE | `src/util/reparse.ts`, `src/sandbox/reparse.ts`, `tests/unit/sandbox/reparse.test.ts`: Complete NTFS reparse point, junction, symlink, and hardlink defense suite. `inspectReparseChain` walks all intermediate ancestors from root jail to leaf, detecting escapes via directory junctions (`mklink /J`) or symlinks; `checkHardlinks` inspects `nlink > 1` preventing hardlink overwrite attacks; `openSafelyInJail` provides TOCTOU-resistant file opening by validating the open handle (`fstat`, `nlink`, realpath verification); `ReparseDefense` provides high-level process working directory validation (`verifyWorkingDirectory`). 15 unit tests pass (100% lines in `src/sandbox/reparse.ts`). |
 | P7-T04 | Network egress control | DONE | `docs/adr/0006-network-egress-control.md`, `src/sandbox/network.ts`, `src/util/net.ts`, `tests/unit/sandbox/network.test.ts`: Implemented deny-by-default network egress control per ADR-0006. (1) Lightweight local loopback HTTP and HTTPS CONNECT proxy (`EgressProxy`) with strict host allowlist pattern matching (`*.example.com`, port specifications), SSRF prevention (denies IPv4/IPv6 loopback, RFC1918 private IPs, carrier NAT, cloud metadata 169.254.169.254, DNS rebinding guards), connection tracking, and graceful socket teardown. (2) `NetworkEgressController` providing proxy lifecycle and automated proxy environment configuration (scrubbing ambient proxy vars when network is disabled; injecting HTTP_PROXY/HTTPS_PROXY/ALL_PROXY pointing to 127.0.0.1:<port> when enabled). (3) `WindowsFirewallManager` providing elevated `netsh advfirewall` outbound block rule helpers for defense-in-depth in elevated Windows service environments with graceful non-elevated fallback. (4) Integrated with `ProcessRunOptions`. 27 unit tests pass (83.47% lines). |
-| P7-T05 | Orphan reaping | TODO | |
-| P7-T06 | Optional AppContainer profile | TODO | |
+| P7-T05 | Orphan reaping | DONE | `src/sandbox/orphan-reaper.ts`, `src/sandbox/process-tree.ts`, `tests/unit/sandbox/orphan-reaper.test.ts`: Implemented crash-safe orphan process reaper. (1) Tracks active sandboxed processes in `%LOCALAPPDATA%\AIR\run\children.json` (Rule R10). (2) Startup reaping scans for leftover jobs/processes from prior sessions, verifies liveness via `isProcessAlive`, terminates running orphan process trees via `taskkill /T /F` (`killProcessTree`), and resets tracking. (3) Atomically persists records via `writeFileAtomicIn` in safe fs jail with serialized locking and corruption resilience. (4) Seamlessly integrated with `StandardProcessRunner` via `ChildProcessTracker` interface with automatic registration on spawn and clean unregistration on exit. 12 unit tests pass (95.94% lines in `orphan-reaper.ts`). |
+| P7-T06 | Optional AppContainer profile | DONE | `docs/adr/0007-appcontainer-isolation-profile.md`, `src/sandbox/appcontainer.ts`, `tests/unit/sandbox/appcontainer.test.ts`: Evaluated Windows AppContainer isolation profile trade-offs in ADR-0007. Implemented `AppContainerManager`, deterministic SID derivation (`deriveAppContainerSid` producing `S-1-15-2-...`), standard capabilities (`internetClient`, `privateNetworkClientServer`, `documentsLibrary`), filesystem ACL command generation and execution (`grantAccessToPath` via `icacls`), and profile lifecycle. 12 unit tests pass (95.83% lines). Exit Gate P7 fully satisfied. |
 
 ### Phase 8 — Memory
 | ID | Task | Status | Notes |
 |---|---|---|---|
-| P8-T01 | Memory interface | TODO | |
+| P8-T01 | Memory interface | DONE | `src/memory/types.ts`, `src/memory/index.ts`, `src/types/ids.ts`, `src/types/schemas.ts`, `src/types/index.ts`, `tests/unit/memory/types.test.ts`, `tests/unit/types/ids.test.ts`: Complete memory contract suite. (1) Defined branded ULID `MemoryId` across types, constructors, parsers, and Zod schemas. (2) Defined `MemoryKind` (`episodic`, `semantic`, `working`) and `MemoryScope` (`agent`, `session`, `run`, `global`). (3) Defined `MemoryProvenance` (`source`, `actorId`, `runId`, `turnId`, `toolCallId`, `taint`) with provenance & taint stored with entries per Rule S9. (4) Defined `MemoryEntry`, `CreateMemoryInput`, `UpdateMemoryInput`, `MemoryFilter`, `MemorySearchQuery`, `MemorySearchResult`, and full `MemoryStore` interface contract. (5) Implemented deterministic TTL and expiration utilities (`calculateExpiresAt`, `isMemoryExpired`, `matchesFilter`) respecting Rule R6 (Clock injection, no raw `Date.now()`). (6) Added 31 unit tests in `tests/unit/memory/types.test.ts` (100% lines, functions, statements, branches) and 33 unit tests in `tests/unit/types/ids.test.ts`. |
 | P8-T02 | SQLite + FTS5 store | TODO | |
 | P8-T03 | Embeddings (optional) | TODO | |
 | P8-T04 | Retrieval & ranking | TODO | |
@@ -198,6 +198,42 @@ last_check_result: PASS (2026-10-17)   # update to PASS/FAIL with date after eac
 | 2026-10-15 | npm (not pnpm) for zero extra setup; dependency versions pinned at first install by bootstrap (lockfile committed) | — |
 
 ## 6. Session log (newest first; append an entry every session)
+
+### 2026-10-18 — Antigravity Engineering Agent — session 44
+- **Did:** Completed P8-T01 (Memory interface).
+  (1) Defined branded ULID `MemoryId` with constructor `createMemoryId()`, parser `parseMemoryId()`, Zod schema `MemoryIdSchema`, and assertion helpers in `src/types/ids.ts` and `src/types/schemas.ts`, and re-exported in `src/types/index.ts`.
+  (2) Implemented `src/memory/types.ts`: `MemoryKind` (`episodic`, `semantic`, `working`), `MemoryScope` (`agent`, `session`, `run`, `global`), `MemoryTaint` (`clean`, `tainted`, `untrusted`), `MemorySource` (`user`, `model`, `tool`, `system`, `consolidated`), `MemoryProvenance` storing provenance & taint with entries (Rule S9), `MemoryEntry`, `CreateMemoryInput`, `UpdateMemoryInput`, `MemoryFilter`, `MemorySearchQuery`, `MemorySearchResult`, and the full `MemoryStore` interface contract.
+  (3) Implemented deterministic TTL and expiration utilities (`calculateExpiresAt`, `isMemoryExpired`, `matchesFilter`) adhering strictly to Rule R6 (injected Clock / ISO timestamps, no raw `Date.now()`).
+  (4) Added `MEMORY_NOT_FOUND` to `ErrorCode` taxonomy in `src/errors/AirError.ts`.
+  (5) Un-excluded `src/memory/**` from coverage in `vitest.config.ts`.
+  (6) Re-exported memory types and schemas in `src/memory/index.ts`.
+  (7) Added 31 unit tests in `tests/unit/memory/types.test.ts` (100% lines, 100% branches, 100% functions, 100% statements) and added 6 new test assertions in `tests/unit/types/ids.test.ts` (33 tests pass).
+  (8) Verified total test suite: 1122 unit/integration tests green across 65 test files.
+- **Evidence:** `npm run check` PASS (exit code 0: typecheck clean, eslint clean, depcruise 0 violations across 123 modules / 487 dependencies, 1122 unit/integration tests green). `npm run test:coverage` PASS (`src/memory/types.ts` 100% lines/funcs/stmts/branches; overall lines 92.78%, statements 91.49%, branches 81.35%, functions 94.67%).
+- **Status changes:** P8-T01 IN_PROGRESS→DONE; Phase 8 progress 1/6 (17%); overall progress 66/94 (70%).
+- **Next agent should:** Implement P8-T02: SQLite + FTS5 store (`src/memory/store.ts`: persistent store in `%LOCALAPPDATA%\AIR\memory.db`, migrations, BM25 indexing & retrieval, TTL pruning).
+
+### 2026-10-17 — Antigravity Engineering Agent — session 43
+- **Did:** Completed P7-T06 (Optional AppContainer profile) and satisfied Exit Gate P7 (Phase 7 COMPLETE: 6/6 tasks done).
+  (1) Authored `docs/adr/0007-appcontainer-isolation-profile.md` evaluating Windows AppContainer isolation mechanics, kernel-level network & IPC isolation, developer tooling friction, and DACL overhead.
+  (2) Implemented `src/sandbox/appcontainer.ts` providing `AppContainerManager`, deterministic SID derivation (`deriveAppContainerSid` generating `S-1-15-2-...`), standard Windows capabilities (`internetClient`, `privateNetworkClientServer`, `documentsLibrary`), filesystem ACL command generation (`generateAclCommand`) and execution (`grantAccessToPath` via `icacls`), and profile lifecycle.
+  (3) Re-exported AppContainer APIs in `src/sandbox/index.ts`.
+  (4) Added 12 unit tests in `tests/unit/sandbox/appcontainer.test.ts` covering SID syntax, determinism, case-insensitivity, platform detection, profile CRUD, and ACL generation.
+  (5) Upgraded test suite: 1089 unit/integration tests green across 64 test files.
+- **Evidence:** `npm run check` PASS (exit code 0: typecheck clean, eslint clean, depcruise 0 violations across 122 modules, 1089 unit/integration tests green). `npm run test:coverage` PASS (`src/sandbox/appcontainer.ts` 95.83% lines, `src/sandbox/**` 89.59% lines; overall lines: 92.80%, statements: 91.50%, branches: 81.19%, functions: 94.63%). Exit Gate P7 fully satisfied.
+- **Status changes:** P7-T06 TODO→DONE; Phase 7 COMPLETE (6/6 tasks done); overall progress 65/94 (69%).
+- **Next agent should:** Begin Phase 8 (Memory) with P8-T01: Memory interface (`src/memory/types.ts`: episodic/semantic/working memory contracts, scopes, TTL).
+
+### 2026-10-17 — Antigravity Engineering Agent — session 42
+- **Did:** Completed P7-T05 (Orphan process reaping).
+  (1) Implemented `src/sandbox/orphan-reaper.ts` providing `OrphanReaper`: tracks active sandboxed processes in `%LOCALAPPDATA%\AIR\run\children.json` (Rule R10), checks liveness via `isProcessAlive`, and reaps leftover orphan process trees using `killProcessTree` (`taskkill /T /F`). Atomic persistence via `writeFileAtomicIn` in safe fs jail with serialized locking and corruption resilience.
+  (2) Created `src/sandbox/process-tree.ts` extracting `killProcessTree` to eliminate module circular dependencies (Rule R9 / depcruise clean).
+  (3) Integrated `ChildProcessTracker` interface into `StandardProcessRunner` (`src/sandbox/process-runner.ts`) with automatic child registration upon spawn and unregistration upon process close.
+  (4) Added 12 unit tests in `tests/unit/sandbox/orphan-reaper.test.ts` covering liveness detection, atomic registration, persistence across instances, startup orphan reaping, kill failure handling, corrupted file recovery, and live integration with `StandardProcessRunner`.
+  (5) Upgraded test suite: 1077 unit/integration tests green across 63 test files.
+- **Evidence:** `npm run check` PASS (exit code 0: typecheck clean, eslint clean, depcruise 0 violations across 121 modules, 1077 unit/integration tests green). `npm run test:coverage` PASS (`src/sandbox/orphan-reaper.ts` 95.94% lines, `src/sandbox/process-runner.ts` 94.26% lines; overall lines: 92.76%, statements: 91.45%, branches: 81.17%, functions: 94.57%).
+- **Status changes:** P7-T05 TODO→DONE; Phase 7 progress 5/6 (83%); overall progress 64/94 (68%).
+- **Next agent should:** Implement P7-T06: Optional AppContainer profile (investigate/implement behind flag; author ADR with findings and security review).
 
 ### 2026-10-17 — Antigravity Engineering Agent — session 41
 - **Did:** Completed P7-T02 (Native helper `air-sandbox.exe`), P7-T03 (Reparse-point defense), and P7-T04 (Network egress control).

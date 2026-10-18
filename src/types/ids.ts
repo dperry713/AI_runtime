@@ -10,6 +10,7 @@ export type SessionId = Branded<string, 'SessionId'>;
 export type TurnId = Branded<string, 'TurnId'>;
 export type ToolCallId = Branded<string, 'ToolCallId'>;
 export type EventId = Branded<string, 'EventId'>;
+export type MemoryId = Branded<string, 'MemoryId'>;
 
 function createId<K extends string>(): Branded<string, K> {
   return ulid() as Branded<string, K>;
@@ -39,6 +40,10 @@ export function createEventId(): EventId {
   return createId<'EventId'>();
 }
 
+export function createMemoryId(): MemoryId {
+  return createId<'MemoryId'>();
+}
+
 export function parseRunId(value: string): RunId {
   return value as RunId;
 }
@@ -61,6 +66,10 @@ export function parseToolCallId(value: string): ToolCallId {
 
 export function parseEventId(value: string): EventId {
   return value as EventId;
+}
+
+export function parseMemoryId(value: string): MemoryId {
+  return value as MemoryId;
 }
 
 export const ID_REGEX = /^[0-9A-HJKMNP-TV-Z]{26}$/;

@@ -83,3 +83,15 @@ export {
   isProcessAlive,
 } from './orphan-reaper.js';
 
+export {
+  type AppContainerCapability,
+  type AppContainerProfile,
+  type AppContainerOptions,
+  type AclGrantResult,
+  APPCONTAINER_CAPABILITIES,
+  AppContainerManager,
+  deriveAppContainerSid,
+  isAppContainerSupported,
+} from './appcontainer.js';
+
+

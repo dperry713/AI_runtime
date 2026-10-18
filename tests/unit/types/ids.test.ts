@@ -6,12 +6,14 @@ import {
   createTurnId,
   createToolCallId,
   createEventId,
+  createMemoryId,
   parseRunId,
   parseAgentId,
   parseSessionId,
   parseTurnId,
   parseToolCallId,
   parseEventId,
+  parseMemoryId,
   assertValidId,
   isValidId,
   ID_REGEX,
@@ -23,18 +25,21 @@ import {
   TurnIdSchema,
   ToolCallIdSchema,
   EventIdSchema,
+  MemoryIdSchema,
   safeParseRunId,
   safeParseAgentId,
   safeParseSessionId,
   safeParseTurnId,
   safeParseToolCallId,
   safeParseEventId,
+  safeParseMemoryId,
   assertValidRunId,
   assertValidAgentId,
   assertValidSessionId,
   assertValidTurnId,
   assertValidToolCallId,
   assertValidEventId,
+  assertValidMemoryId,
   isValidIdString,
 } from '../../../src/types/schemas.js';
 
@@ -72,6 +77,12 @@ describe('branded IDs', () => {
 
     it('creates EventId', () => {
       const id = createEventId();
+      expect(typeof id).toBe('string');
+      expect(ID_REGEX.test(id)).toBe(true);
+    });
+
+    it('creates MemoryId', () => {
+      const id = createMemoryId();
       expect(typeof id).toBe('string');
       expect(ID_REGEX.test(id)).toBe(true);
     });
@@ -119,6 +130,12 @@ describe('branded IDs', () => {
     it('parses valid EventId', () => {
       const raw = createEventId();
       const parsed = parseEventId(raw);
+      expect(parsed).toBe(raw);
+    });
+
+    it('parses valid MemoryId', () => {
+      const raw = createMemoryId();
+      const parsed = parseMemoryId(raw);
       expect(parsed).toBe(raw);
     });
   });
@@ -206,6 +223,7 @@ describe('branded IDs', () => {
         TurnIdSchema,
         ToolCallIdSchema,
         EventIdSchema,
+        MemoryIdSchema,
       ];
       for (const schema of schemas) {
         expect(schema.safeParse('01ARZ3NDEKTSV4RRFFQ69G5FAV').success).toBe(true);
@@ -220,12 +238,14 @@ describe('branded IDs', () => {
       expect(safeParseTurnId(valid).success).toBe(true);
       expect(safeParseToolCallId(valid).success).toBe(true);
       expect(safeParseEventId(valid).success).toBe(true);
+      expect(safeParseMemoryId(valid).success).toBe(true);
 
       expect(safeParseAgentId('bad').success).toBe(false);
       expect(safeParseSessionId('bad').success).toBe(false);
       expect(safeParseTurnId('bad').success).toBe(false);
       expect(safeParseToolCallId('bad').success).toBe(false);
       expect(safeParseEventId('bad').success).toBe(false);
+      expect(safeParseMemoryId('bad').success).toBe(false);
     });
 
     it('assertValid helpers parse valid IDs or throw on invalid', () => {
@@ -236,6 +256,7 @@ describe('branded IDs', () => {
       expect(assertValidTurnId(valid)).toBe(valid);
       expect(assertValidToolCallId(valid)).toBe(valid);
       expect(assertValidEventId(valid)).toBe(valid);
+      expect(assertValidMemoryId(valid)).toBe(valid);
 
       expect(() => assertValidRunId('bad')).toThrow();
       expect(() => assertValidAgentId('bad')).toThrow();
@@ -243,6 +264,7 @@ describe('branded IDs', () => {
       expect(() => assertValidTurnId('bad')).toThrow();
       expect(() => assertValidToolCallId('bad')).toThrow();
       expect(() => assertValidEventId('bad')).toThrow();
+      expect(() => assertValidMemoryId('bad')).toThrow();
     });
 
     it('assertValidId asserts or throws', () => {

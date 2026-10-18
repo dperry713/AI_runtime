@@ -1,1 +1,1 @@
-export const memory = 'memory';
+export * from './types.js';

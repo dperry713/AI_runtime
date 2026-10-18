@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { RunId, AgentId, SessionId, TurnId, ToolCallId, EventId } from './ids.js';
+import type { RunId, AgentId, SessionId, TurnId, ToolCallId, EventId, MemoryId } from './ids.js';
 import { isValidId } from './ids.js';
 
 const ulidSchema = z.string().regex(/^[0-9A-HJKMNP-TV-Z]{26}$/, 'Invalid ULID format');
@@ -10,6 +10,7 @@ export const SessionIdSchema = ulidSchema;
 export const TurnIdSchema = ulidSchema;
 export const ToolCallIdSchema = ulidSchema;
 export const EventIdSchema = ulidSchema;
+export const MemoryIdSchema = ulidSchema;
 
 export const ID_SCHEMAS = {
   RunId: RunIdSchema,
@@ -18,6 +19,7 @@ export const ID_SCHEMAS = {
   TurnId: TurnIdSchema,
   ToolCallId: ToolCallIdSchema,
   EventId: EventIdSchema,
+  MemoryId: MemoryIdSchema,
 } as const;
 
 export type IdSchemaMap = typeof ID_SCHEMAS;
@@ -46,6 +48,10 @@ export function safeParseEventId(value: unknown) {
   return EventIdSchema.safeParse(value);
 }
 
+export function safeParseMemoryId(value: unknown) {
+  return MemoryIdSchema.safeParse(value);
+}
+
 export function isValidIdString(value: string): boolean {
   return isValidId(value);
 }
@@ -72,4 +78,8 @@ export function assertValidToolCallId(value: string): ToolCallId {
 
 export function assertValidEventId(value: string): EventId {
   return EventIdSchema.parse(value) as EventId;
+}
+
+export function assertValidMemoryId(value: string): MemoryId {
+  return MemoryIdSchema.parse(value) as MemoryId;
 }

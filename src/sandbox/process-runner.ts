@@ -24,7 +24,7 @@ import type {
   ProcessRunResult,
 } from './types.js';
 import type { NetworkEgressController } from './network.js';
-import type { OrphanReaper } from './orphan-reaper.js';
+import { killProcessTree } from './process-tree.js';
 
 // ============================================================================
 // 1. Environment Allowlist & Scrubbing Engine
@@ -160,30 +160,14 @@ export function scrubEnvironment(options: ScrubEnvironmentOptions): Record<strin
 }
 
 // ============================================================================
-// 2. Process Tree Termination
+// 2. Process Tree Termination & Child Tracking Contract
 // ============================================================================
 
-/**
- * Forcibly terminates a process and all of its spawned child processes.
- * On Windows, dispatches `taskkill /pid <pid> /T /F`.
- */
-export function killProcessTree(pid: number): void {
-  try {
-    if (process.platform === 'win32') {
-      spawn('taskkill', ['/pid', String(pid), '/T', '/F'], {
-        windowsHide: true,
-        stdio: 'ignore',
-      });
-    } else {
-      process.kill(-pid, 'SIGKILL');
-    }
-  } catch {
-    try {
-      process.kill(pid, 'SIGKILL');
-    } catch {
-      // Ignore if process already died
-    }
-  }
+export { killProcessTree };
+
+export interface ChildProcessTracker {
+  registerChild(child: { pid: number; command: string; startTime: number }): Promise<void>;
+  unregisterChild(pid: number): Promise<void>;
 }
 
 // ============================================================================
@@ -197,7 +181,7 @@ export interface StandardProcessRunnerOptions {
   readonly defaultEnvAllowlist?: readonly string[] | undefined;
   readonly workspaceRoot?: string | undefined;
   readonly egressController?: NetworkEgressController | undefined;
-  readonly orphanReaper?: OrphanReaper | undefined;
+  readonly orphanReaper?: ChildProcessTracker | undefined;
   readonly logger?: ComponentLogger | undefined;
 }
 
@@ -211,7 +195,7 @@ export class StandardProcessRunner implements ProcessRunner {
   private readonly defaultEnvAllowlist: readonly string[];
   private readonly workspaceRoot?: string | undefined;
   private readonly egressController?: NetworkEgressController | undefined;
-  private readonly orphanReaper?: OrphanReaper | undefined;
+  private readonly orphanReaper?: ChildProcessTracker | undefined;
   private readonly logger: ComponentLogger;
   private readonly activeProcesses = new Map<number, ActiveProcessInfo>();
 
@@ -324,6 +308,8 @@ export class StandardProcessRunner implements ProcessRunner {
         );
       }
 
+      let reaperChain: Promise<void> = Promise.resolve();
+
       const pid = child.pid;
       if (pid) {
         this.activeProcesses.set(pid, {
@@ -332,11 +318,13 @@ export class StandardProcessRunner implements ProcessRunner {
           startTime: this.clock.now().getTime(),
         });
         if (this.orphanReaper) {
-          void this.orphanReaper.registerChild({
-            pid,
-            command: options.command,
-            startTime: this.clock.now().getTime(),
-          });
+          reaperChain = reaperChain.then(() =>
+            this.orphanReaper?.registerChild({
+              pid,
+              command: options.command,
+              startTime: this.clock.now().getTime(),
+            }),
+          );
         }
       }
 
@@ -360,7 +348,7 @@ export class StandardProcessRunner implements ProcessRunner {
         if (pid) {
           this.activeProcesses.delete(pid);
           if (this.orphanReaper) {
-            void this.orphanReaper.unregisterChild(pid);
+            reaperChain = reaperChain.then(() => this.orphanReaper?.unregisterChild(pid));
           }
         }
       };
@@ -473,39 +461,42 @@ export class StandardProcessRunner implements ProcessRunner {
       });
 
       child.on('close', (code: number | null) => {
-        cleanup();
-        const durationMs = this.clock.monotonicMs() - startMono;
+        void (async () => {
+          cleanup();
+          await reaperChain.catch(() => {});
+          const durationMs = this.clock.monotonicMs() - startMono;
 
-        if (timedOut) {
-          return reject(
-            new AirError(
-              'TOOL_TIMEOUT',
-              `Process execution timed out after ${timeoutMs}ms`,
-              {
-                context: { command: options.command, timeoutMs, durationMs, pid },
-              },
-            ),
-          );
-        }
+          if (timedOut) {
+            return reject(
+              new AirError(
+                'TOOL_TIMEOUT',
+                `Process execution timed out after ${timeoutMs}ms`,
+                {
+                  context: { command: options.command, timeoutMs, durationMs, pid },
+                },
+              ),
+            );
+          }
 
-        if (killed && options.signal?.aborted) {
-          return reject(
-            new AirError('CANCELLED', 'Process execution was cancelled', {
-              context: { command: options.command, durationMs, pid },
-            }),
-          );
-        }
+          if (killed && options.signal?.aborted) {
+            return reject(
+              new AirError('CANCELLED', 'Process execution was cancelled', {
+                context: { command: options.command, durationMs, pid },
+              }),
+            );
+          }
 
-        resolve({
-          exitCode: code ?? (killed ? -1 : 0),
-          stdout,
-          stderr,
-          durationMs,
-          timedOut,
-          killed,
-          pid,
-          truncated,
-        });
+          resolve({
+            exitCode: code ?? (killed ? -1 : 0),
+            stdout,
+            stderr,
+            durationMs,
+            timedOut,
+            killed,
+            pid,
+            truncated,
+          });
+        })();
       });
     });
   }
