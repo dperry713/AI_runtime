@@ -6,8 +6,8 @@ last_updated: 2026-10-18
 current_phase: P8
 current_phase_name: Memory
 overall_tasks_total: 94
-overall_tasks_done: 70
-overall_progress_pct: 74
+overall_tasks_done: 71
+overall_progress_pct: 75
 repo_path: C:\Users\d\OneDrive\Desktop\AI_runtime
 runtime_home_default: "%LOCALAPPDATA%\\AIR"
 last_check_result: PASS (2026-10-18)   # update to PASS/FAIL with date after each `npm run check`
@@ -24,15 +24,15 @@ last_check_result: PASS (2026-10-18)   # update to PASS/FAIL with date after eac
 | Item | Value |
 |---|---|
 | Current phase | **P8 — Memory** |
-| Phase progress | Phase 8: 5 / 6 tasks done (P8-T01, P8-T02, P8-T03, P8-T04, P8-T05 DONE) |
-| Overall | 70 / 94 tasks done (Phases 0 through 7 complete, Phase 8 in progress - 74.5%) |
-| Last `npm run check` | PASS (2026-10-18) — typecheck clean, lint clean, deps:check clean (128 modules / 525 deps, 0 violations), 1319 unit/integration tests green (+ 3 skipped live tests across 69 test files) |
+| Phase progress | Phase 8: 6 / 6 tasks done (P8-T01 through P8-T06 DONE — Phase 8 COMPLETE) |
+| Overall | 71 / 94 tasks done (Phases 0 through 8 complete - 75.5%) |
+| Last `npm run check` | PASS (2026-10-18) — typecheck clean, lint clean, deps:check clean (129 modules / 531 deps, 0 violations), 1351 unit/integration tests green (+ 3 skipped live tests across 70 test files) |
 | Coverage gate | PASS (2026-10-18) — all suites pass; src/memory/** coverage within thresholds; global lines 92.5%, statements 91.2%, branches 81.1%, functions 94.5% |
 | Known blockers | None |
 
 ## 2. NEXT UP (ordered — take the first unblocked item)
 
-1. **P8-T06** — Memory tools (`memory.search`, `memory.write`, `memory.forget`).
+1. **P9-T01** — IPC protocol spec + implementation.
 
 ## 3. Blockers / human actions required
 
@@ -145,7 +145,7 @@ last_check_result: PASS (2026-10-18)   # update to PASS/FAIL with date after eac
 | P8-T03 | Embeddings (optional) | DONE | `src/memory/embeddings.ts`, `src/config/schema.ts`, `src/config/index.ts`, `src/memory/store.ts`, `src/memory/index.ts`, `tests/unit/memory/embeddings.test.ts`: Embedding provider interface, in-process vector math, MockEmbeddingProvider, RemoteEmbeddingProvider, and SQLite vector/hybrid search integration. (1) Defined `EmbeddingProvider` interface (`id`, `dimensions`, `embed`, `embedBatch`) and options. (2) Implemented vector math utilities: `cosineSimilarity` (dimension validation, zero-magnitude handling, clamping to [-1, 1]), `dotProduct`, `euclideanDistance`, `vectorMagnitude`, `normalizeVector`. (3) Implemented `rankByVector()` for in-memory cosine ranking with `minSimilarity` and `limit`. (4) Built deterministic `MockEmbeddingProvider` (Rule R6: Mulberry32 PRNG seeded by FNV-1a hash, canned vectors, simulated latency/failure, and abort support). (5) Built `RemoteEmbeddingProvider` for OpenAI/Ollama/NIM compatible `/v1/embeddings` with batch chunking, index ordering, typed `AirError` mapping, and injectable `fetcher`/`clock`. (6) Added `MemoryEmbeddingsConfigSchema` and `MemoryConfigSchema` to config system. (7) Integrated `embeddingProvider` into `SqliteMemoryStore` with vector search, Reciprocal Rank Fusion (RRF) hybrid search, and auto-embed on write/batchWrite. (8) Added 52 unit tests in `tests/unit/memory/embeddings.test.ts` (all 146 memory tests pass). |
 | P8-T04 | Retrieval & ranking | DONE | `src/memory/ranking.ts`, `src/memory/index.ts`, `src/memory/store.ts`, `tests/unit/memory/ranking.test.ts`: Recency decay, importance weighting, blended composite scoring, FTS5 query token sanitization, and token-budgeted prompt context injection (`retrieveForContext`). (1) Implemented `calculateRecencyScore()` using exponential half-life decay ($S_{rec} = e^{-\lambda \Delta t}$) with configurable `halfLifeHours` (default 7 days) and `useAccessedAt` support. (2) Implemented `blendScores()` weighting relevance (0.5), recency (0.3), and importance (0.2) with automatic weight normalization and bounds clamping. (3) Implemented `rankSearchResults()` re-ranking candidates with composite scores and `minScore`/`limit` thresholds. (4) Built `retrieveForContext()` greedily packing top memories into a strict token budget with markdown formatting (`defaultFormatMemoryEntry`), custom tokenizers, and `budgetExceeded` tracking. (5) Added FTS5 multi-token sanitization (`sanitizeFts5Query`) in `SqliteMemoryStore` preventing syntax errors on punctuation (e.g. `Node.js`). (6) Added 22 unit tests in `tests/unit/memory/ranking.test.ts` (100% lines, 92.59% branches, 100% functions; all 168 memory tests pass). |
 | P8-T05 | Memory write policy | DONE | `src/memory/write-policy.ts`, `tests/unit/memory/write-policy.ts`, `tests/security/memory-poisoning.test.ts`: Allow/deny rules for memory writes (scope validation, agent boundaries, content limits), secret scrubbing (Rule R4, integrated with src/observability/redaction), PII scrubbing (emails, phones, SSNs, credit cards) with redact/reject/warn modes, provenance & taint tracking (Rule S9 / Threat T11: tainted inputs cannot be stored as clean memories), prompt injection detection & neutralization, assertAllowed/enforceOnBatch/sanitizeUpdate APIs. 59 unit tests + 24 security tests pass. `npm run check` PASS (typecheck, lint, deps:check 0 violations, 1319 tests green). |
-| P8-T06 | Memory tools | TODO | |
+| P8-T06 | Memory tools | DONE | `src/tools/builtin/memory.ts`, `tests/unit/memory/tools.test.ts`: Three policy-governed memory tools. (1) memory.search: keyword (BM25/FTS5), vector (cosine similarity), and hybrid search with filtering, pagination, and minScore. (2) memory.write: writes through MemoryWritePolicy enforcing secret/PII scrubbing (Rule R4), scope boundary isolation, content/tag/metadata length limits, and taint/provenance enforcement (Rule S9 / Threat T11). (3) memory.forget: delete by ID or by filter with FTS + vector cleanup. Factory pattern createMemoryTools(store, writePolicy) and registration helper registerBuiltinMemoryTools(registry, store, writePolicy). 32 unit tests pass. `npm run check` PASS (typecheck, lint, deps:check 0 violations, 1351 tests green). |
 
 ### Phase 9 — Daemon, IPC, shell
 | ID | Task | Status | Notes |
@@ -197,6 +197,19 @@ last_check_result: PASS (2026-10-18)   # update to PASS/FAIL with date after eac
 | 2026-10-15 | npm (not pnpm) for zero extra setup; dependency versions pinned at first install by bootstrap (lockfile committed) | — |
 
 ## 6. Session log (newest first; append an entry every session)
+
+### 2026-10-18 — Antigravity Engineering Agent — session 48
+- **Did:** Completed P8-T06 (Memory tools). Phase 8 is now COMPLETE (6/6 tasks).
+  (1) Implemented `src/tools/builtin/memory.ts`: three policy-governed memory tools using the factory pattern.
+      - memory.search: keyword (BM25/FTS5), vector (cosine similarity), and hybrid search with filter, pagination, minScore.
+      - memory.write: writes through MemoryWritePolicy enforcing secret/PII scrubbing (Rule R4), scope boundary isolation, content/tag/metadata length limits, taint/provenance enforcement (Rule S9 / Threat T11).
+      - memory.forget: delete by ID or by filter with FTS + vector cleanup.
+  (2) Factory `createMemoryTools(store, writePolicy)` and registration helper `registerBuiltinMemoryTools(registry, store, writePolicy)`.
+  (3) Exported memory tools from `src/tools/index.ts` for use by the dev harness and agent runner.
+  (4) Added `tests/unit/memory/tools.test.ts` (32 tests): search (keyword/vector/hybrid, filtering, pagination, minScore), write (clean write, global scope, scope mismatch, missing scope ID, secret redaction, PII redaction, taint escalation, prompt injection, input validation), forget (by ID, by filter, non-existent, validation), factory and registration.
+- **Evidence:** `npm run check` PASS (exit code 0: typecheck clean, eslint clean, depcruise 0 violations across 129 modules / 531 dependencies, 1351 tests green across 70 test files).
+- **Status changes:** P8-T06 TODO→DONE; Phase 8 COMPLETE (6/6); overall progress 71/94 (75.5%).
+- **Next agent should:** Begin Phase 9 (Daemon, IPC, shell) starting with P9-T01 IPC protocol spec + implementation.
 
 ### 2026-10-18 — Antigravity Engineering Agent — session 47
 - **Did:** Completed P8-T05 (Memory write policy).
