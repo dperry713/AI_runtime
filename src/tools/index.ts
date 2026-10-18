@@ -164,3 +164,24 @@ export {
   type SchemaFuzzResult,
   fuzzToolSchema,
 } from './testkit.js';
+
+export {
+  MemorySearchInputSchema,
+  type MemorySearchInput,
+  MemorySearchOutputSchema,
+  type MemorySearchOutput,
+  createMemorySearchTool,
+  MemoryWriteInputSchema,
+  type MemoryWriteInput,
+  MemoryWriteOutputSchema,
+  type MemoryWriteOutput,
+  createMemoryWriteTool,
+  MemoryForgetInputSchema,
+  type MemoryForgetInput,
+  MemoryForgetOutputSchema,
+  type MemoryForgetOutput,
+  createMemoryForgetTool,
+  createMemoryTools,
+  createBuiltinMemoryTools,
+  registerBuiltinMemoryTools,
+} from './builtin/memory.js';
