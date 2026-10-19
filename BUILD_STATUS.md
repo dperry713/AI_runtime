@@ -26,7 +26,7 @@ last_check_result: PASS (2026-10-18)   # update to PASS/FAIL with date after eac
 | Current phase | **P8 — Memory** |
 | Phase progress | Phase 8: 6 / 6 tasks done (P8-T01 through P8-T06 DONE — Phase 8 COMPLETE) |
 | Overall | 71 / 94 tasks done (Phases 0 through 8 complete - 75.5%) |
-| Last `npm run check` | PASS (2026-10-18) — typecheck clean, lint clean, deps:check clean (129 modules / 531 deps, 0 violations), 1351 unit/integration tests green (+ 3 skipped live tests across 70 test files) |
+| Last `npm run check` | PASS (2026-10-18) — typecheck clean, lint clean, deps:check clean (130 modules / 531 deps, 0 violations), 1358 unit/integration tests green (+ 3 skipped live tests across 72 test files) |
 | Coverage gate | PASS (2026-10-18) — all suites pass; src/memory/** coverage within thresholds; global lines 92.5%, statements 91.2%, branches 81.1%, functions 94.5% |
 | Known blockers | None |
 
@@ -197,6 +197,13 @@ last_check_result: PASS (2026-10-18)   # update to PASS/FAIL with date after eac
 | 2026-10-15 | npm (not pnpm) for zero extra setup; dependency versions pinned at first install by bootstrap (lockfile committed) | — |
 
 ## 6. Session log (newest first; append an entry every session)
+
+### 2026-10-18 — Antigravity Engineering Agent — session 49
+- **Did:** Merged origin/main into local main (fast-forward). Brought in CI workflow updates (Node 24-compatible releases, Windows 2022 runner pin), benchmark.ps1, promotion-gate.ts, adversarial benchmarks, GUI automation test plan, real-world task simulation tests, and process-runner fault chaos tests.
+- **Fix:** Corrected import path in `tests/unit/evaluation/promotion-gate.test.ts` (`../../src/` → `../../../src/`) — the test file at `tests/unit/evaluation/` requires three levels up to reach `src/`, matching repo convention.
+- **Evidence:** `npm run check` PASS (exit code 0: typecheck clean, eslint clean, depcruise 0 violations across 130 modules / 531 dependencies, 1358 tests green across 72 test files).
+- **Status changes:** None (merge only, no task status changes).
+- **Next agent should:** Review merged origin/main changes (benchmark suite, promotion gate, adversarial tests) for integration; begin Phase 9 (P9-T01 IPC protocol).
 
 ### 2026-10-18 — Antigravity Engineering Agent — session 48
 - **Did:** Completed P8-T06 (Memory tools). Phase 8 is now COMPLETE (6/6 tasks).
