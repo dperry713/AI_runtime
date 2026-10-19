@@ -21,8 +21,8 @@ jobs:
       GYP_MSVS_VERSION: '2022'
       npm_config_msvs_version: '2022'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -37,7 +37,7 @@ jobs:
         run: ./scripts/benchmark.ps1 -Iterations 3
         shell: pwsh
       - run: npm audit --omit=dev --audit-level=high
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage-and-benchmark-report
@@ -53,8 +53,8 @@ jobs:
     env:
       GYP_MSVS_VERSION: '2022'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -65,7 +65,7 @@ jobs:
           AIR_CHAOS_ITERATIONS: '1000'
       - run: npm run test:security
       - run: npm run test:perf
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: nightly-logs
