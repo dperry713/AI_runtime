@@ -4,7 +4,7 @@ import {
   type BenchmarkScorecard,
   type PromotionEvidence,
   type PromotionPolicy,
-} from '../../src/evaluation/promotion-gate.js';
+} from '../../../src/evaluation/promotion-gate.js';
 
 const baseline: BenchmarkScorecard = {
   taskSuccessRate: 0.90,
