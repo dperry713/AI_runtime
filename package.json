@@ -25,7 +25,7 @@
     "test:security": "vitest run tests/security --passWithNoTests",
     "test:perf": "vitest run tests/perf --passWithNoTests",
     "test:eval": "vitest run tests/eval --passWithNoTests",
-    "test:benchmark": "vitest run tests/integration/real-world-task-simulation.test.ts tests/security/adversarial-runtime-regression.test.ts tests/chaos/process-runner-faults.test.ts",
+    "test:benchmark": "vitest run tests/integration/real-world-task-simulation.test.ts tests/security/adversarial-runtime-regression.test.ts tests/chaos/process-runner-faults.test.ts tests/unit/evaluation/promotion-gate.test.ts",
     "test:benchmark:repeat": "pwsh -NoProfile -File ./scripts/benchmark.ps1 -Iterations 3",
     "test:coverage": "vitest run tests/unit tests/integration --coverage --passWithNoTests",
     "check": "npm run typecheck && npm run lint && npm run deps:check && npm test",

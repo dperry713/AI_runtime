@@ -3,9 +3,9 @@
 .SYNOPSIS
   Repeats AIR's deterministic benchmark suite and writes a machine-readable report.
 .DESCRIPTION
-  Measures wall-clock duration per suite run and emits p50/p95 and pass/fail
-  status. This is a harness-level benchmark; it does not claim to measure model
-  quality or interactive GUI accuracy.
+  Records suite pass rate, wall-clock p50/p95, and sampled Node child-process
+  memory/CPU observations. Resource figures are approximate sampled measurements,
+  not a substitute for Windows Performance Recorder or per-action telemetry.
 .PARAMETER Iterations
   Number of full suite repetitions (1-20). Default: 3.
 #>
@@ -32,26 +32,59 @@ function Get-Percentile {
   return [Math]::Round([double]$sorted[$index], 2)
 }
 
+$npmCommand = Get-Command npm.cmd -ErrorAction Stop
 for ($iteration = 1; $iteration -le $Iterations; $iteration++) {
   $logPath = Join-Path $logDir "benchmark-$runStamp-$iteration.log"
+  $stdoutPath = "$logPath.stdout.tmp"
+  $stderrPath = "$logPath.stderr.tmp"
+  $baselineNodeIds = @((Get-Process -Name node -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Id))
+  $cpuByPid = @{}
+  $peakWorkingSetBytes = [int64]0
+  $peakNodeProcessCount = 0
+
   Write-Host "==> Benchmark iteration $iteration/$Iterations" -ForegroundColor Cyan
   $watch = [System.Diagnostics.Stopwatch]::StartNew()
+  $process = Start-Process -FilePath $npmCommand.Source -ArgumentList @('run', 'test:benchmark') -NoNewWindow -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
 
-  # Do not pipe npm's output through another native process; preserve its exit code.
-  & npm run test:benchmark 2>&1 | Tee-Object -FilePath $logPath
-  $exitCode = $LASTEXITCODE
+  while (-not $process.HasExited) {
+    $nodes = @(Get-Process -Name node -ErrorAction SilentlyContinue | Where-Object { $_.Id -notin $baselineNodeIds })
+    $peakNodeProcessCount = [Math]::Max($peakNodeProcessCount, $nodes.Count)
+    $workingSet = [int64]0
+    foreach ($nodeProcess in $nodes) {
+      $workingSet += [int64]$nodeProcess.WorkingSet64
+      if ($null -ne $nodeProcess.CPU) {
+        $cpuByPid[[string]$nodeProcess.Id] = [double]$nodeProcess.CPU
+      }
+    }
+    $peakWorkingSetBytes = [Math]::Max($peakWorkingSetBytes, $workingSet)
+    Start-Sleep -Milliseconds 100
+    $process.Refresh()
+  }
+
+  $process.WaitForExit()
   $watch.Stop()
+  $exitCode = $process.ExitCode
+  $stdout = if (Test-Path $stdoutPath) { Get-Content $stdoutPath -Raw } else { '' }
+  $stderr = if (Test-Path $stderrPath) { Get-Content $stderrPath -Raw } else { '' }
+  @($stdout, $stderr) -join [Environment]::NewLine | Set-Content -Encoding utf8 $logPath
+  Remove-Item $stdoutPath, $stderrPath -Force -ErrorAction SilentlyContinue
 
+  $cpuSeconds = [double](($cpuByPid.Values | Measure-Object -Sum).Sum)
+  if ([double]::IsNaN($cpuSeconds)) { $cpuSeconds = 0.0 }
   $runResults.Add([pscustomobject]@{
     iteration = $iteration
     passed = ($exitCode -eq 0)
     exitCode = $exitCode
     durationMs = [Math]::Round($watch.Elapsed.TotalMilliseconds, 2)
+    sampledNodeCpuMs = [Math]::Round($cpuSeconds * 1000, 2)
+    peakSampledNodeWorkingSetBytes = $peakWorkingSetBytes
+    peakSampledNodeProcessCount = $peakNodeProcessCount
     log = [System.IO.Path]::GetRelativePath((Get-Location).Path, $logPath)
   })
 
   if ($exitCode -ne 0) {
     Write-Host "Benchmark iteration $iteration failed (exit $exitCode)." -ForegroundColor Red
+    Write-Host "See $logPath" -ForegroundColor Yellow
   }
 }
 
@@ -79,18 +112,24 @@ $report = [ordered]@{
     min = [Math]::Round(($durations | Measure-Object -Minimum).Minimum, 2)
     max = [Math]::Round(($durations | Measure-Object -Maximum).Maximum, 2)
   }
+  resources = [ordered]@{
+    peakSampledNodeWorkingSetBytes = [Math]::Max(0, [int64](($runResults | Measure-Object peakSampledNodeWorkingSetBytes -Maximum).Maximum))
+    peakSampledNodeProcessCount = [Math]::Max(0, [int](($runResults | Measure-Object peakSampledNodeProcessCount -Maximum).Maximum))
+    sampledNodeCpuMsAcrossRuns = [Math]::Round([double](($runResults | Measure-Object sampledNodeCpuMs -Sum).Sum), 2)
+  }
   runs = @($runResults)
   limitations = @(
-    'Wall-clock duration includes Node/Vitest startup and is not pure runtime latency.',
+    'Wall-clock duration includes npm, Node, and Vitest startup; it is not pure model or action latency.',
+    'Resource measurements sample new Node processes every 100 ms and may miss short-lived processes or non-Node/native allocations.',
     'Mock-provider task success is deterministic and does not estimate live-model accuracy.',
-    'GUI, visual grounding, and hardware-resource benchmarks require a dedicated interactive Windows runner.'
+    'GUI, visual grounding, and multi-monitor benchmarks require a dedicated interactive Windows runner.'
   )
 }
 
 $reportPath = Join-Path $logDir 'benchmark-report.json'
 $report | ConvertTo-Json -Depth 8 | Set-Content -Encoding utf8 $reportPath
 Write-Host "Benchmark report: $reportPath" -ForegroundColor Cyan
-Write-Host ("Pass rate: {0:P0}; p50: {1} ms; p95: {2} ms" -f $report.passRate, $report.durationMs.p50, $report.durationMs.p95)
+Write-Host ("Pass rate: {0:P0}; p50: {1} ms; p95: {2} ms; sampled peak Node memory: {3:N1} MiB" -f $report.passRate, $report.durationMs.p50, $report.durationMs.p95, ($report.resources.peakSampledNodeWorkingSetBytes / 1MB))
 
 if ($passedRuns -ne $Iterations) { exit 1 }
 exit 0

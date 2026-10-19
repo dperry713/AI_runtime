@@ -1,10 +1,10 @@
 #requires -Version 5.1
 <#
 .SYNOPSIS  Runs a test suite kind and captures output to var\test-logs\.
-.PARAMETER Kind  unit | integration | e2e | chaos | security | perf | eval | coverage | all
+.PARAMETER Kind  unit | integration | e2e | chaos | security | perf | eval | coverage | benchmark | all
 #>
 [CmdletBinding()]
-param([ValidateSet('unit', 'integration', 'e2e', 'chaos', 'security', 'perf', 'eval', 'coverage', 'all')][string]$Kind = 'all')
+param([ValidateSet('unit', 'integration', 'e2e', 'chaos', 'security', 'perf', 'eval', 'coverage', 'benchmark', 'all')][string]$Kind = 'all')
 
 $ErrorActionPreference = 'Continue'
 Set-Location (Split-Path $PSScriptRoot -Parent)
@@ -12,7 +12,7 @@ $logDir = Join-Path 'var' 'test-logs'
 New-Item -ItemType Directory -Force -Path $logDir | Out-Null
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 
-$kinds = if ($Kind -eq 'all') { @('unit', 'integration', 'e2e', 'security', 'chaos') } else { @($Kind) }
+$kinds = if ($Kind -eq 'all') { @('unit', 'integration', 'e2e', 'security', 'chaos', 'benchmark') } else { @($Kind) }
 $failed = $false
 foreach ($k in $kinds) {
     $log = Join-Path $logDir "$k-$stamp.log"

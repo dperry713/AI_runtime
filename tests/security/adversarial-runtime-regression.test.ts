@@ -4,6 +4,9 @@
  * These are deterministic tests: no live model, external network, or destructive
  * host commands. Every network case is evaluated as a policy decision only.
  */
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { isInside, validatePathSyntax } from '../../src/util/paths.js';
 import {
@@ -35,6 +38,25 @@ describe('Adversarial runtime regression corpus', () => {
 
     it('keeps traversal outside the workspace jail', () => {
       expect(isInside('C:\\workspace', 'C:\\workspace\\..\\Windows\\System32\\cmd.exe')).toBe(false);
+    });
+
+    it('rejects a workspace junction that resolves to an outside directory', () => {
+      const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'air-junction-escape-'));
+      const workspace = path.join(tempRoot, 'workspace');
+      const outside = path.join(tempRoot, 'outside');
+      fs.mkdirSync(workspace, { recursive: true });
+      fs.mkdirSync(outside, { recursive: true });
+      const sentinel = path.join(outside, 'sentinel.txt');
+      fs.writeFileSync(sentinel, 'outside-data');
+      const junction = path.join(workspace, 'linked-outside');
+
+      try {
+        fs.symlinkSync(outside, junction, 'junction');
+        expect(isInside(workspace, path.join(junction, 'sentinel.txt'))).toBe(false);
+        expect(fs.readFileSync(sentinel, 'utf8')).toBe('outside-data');
+      } finally {
+        fs.rmSync(tempRoot, { recursive: true, force: true });
+      }
     });
 
     it.each(['workspace\\src\\index.ts', 'reports\\2026-10.json', 'C:\\workspace\\readme.md'])(
