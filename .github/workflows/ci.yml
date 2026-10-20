@@ -48,10 +48,12 @@ jobs:
 
   nightly:
     if: github.event_name == 'schedule'
-    runs-on: windows-latest
+    runs-on: windows-2022
     timeout-minutes: 120
     env:
+      # Keep native dependency builds aligned with the regular CI job.
       GYP_MSVS_VERSION: '2022'
+      npm_config_msvs_version: '2022'
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
