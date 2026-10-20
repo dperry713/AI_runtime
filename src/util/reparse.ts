@@ -66,7 +66,36 @@ export interface SafeFileHandle {
 }
 
 function toFullPath(root: string, relOrAbs: string): string {
-  return path.isAbsolute(relOrAbs) ? relOrAbs : path.resolve(root, relOrAbs);
+  return path.isAbsolute(relOrAbs) ? path.resolve(relOrAbs) : path.resolve(root, relOrAbs);
+}
+
+/**
+ * Rebase an absolute target onto the canonical jail spelling when an existing
+ * ancestor is an equivalent Windows 8.3 short path. Only ancestors up to the
+ * jail root are canonicalized; components below the jail remain lexical so
+ * junctions and symlinks inside the jail stay visible to the chain inspection.
+ */
+function rebaseTargetToCanonicalRoot(fullRoot: string, fullTarget: string): string {
+  const parsed = path.parse(fullTarget);
+  const segments = fullTarget.slice(parsed.root.length).split(path.sep).filter(Boolean);
+  let current = parsed.root;
+
+  for (let consumed = 0; consumed <= segments.length; consumed++) {
+    if (consumed > 0) {
+      const segment = segments[consumed - 1];
+      if (segment !== undefined) current = path.join(current, segment);
+    }
+
+    try {
+      if (canonicalize(current).toLowerCase() === fullRoot.toLowerCase()) {
+        return path.join(fullRoot, ...segments.slice(consumed));
+      }
+    } catch {
+      // Continue walking lexical ancestors until the jail root is found.
+    }
+  }
+
+  return fullTarget;
 }
 
 /**
@@ -146,7 +175,8 @@ export async function inspectReparseChain(
   validatePathSyntax(targetPath);
 
   const fullRoot = canonicalize(rootJail);
-  const fullTarget = toFullPath(fullRoot, targetPath);
+  const absoluteTarget = toFullPath(fullRoot, targetPath);
+  const fullTarget = rebaseTargetToCanonicalRoot(fullRoot, absoluteTarget);
 
   // Lexical containment pre-check
   const normalizedTarget = normalizeSeparators(fullTarget);
