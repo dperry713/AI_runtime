@@ -141,7 +141,7 @@ describe('config module', () => {
       const mockUser = path.join(tempDir, 'Users', 'testuser');
       const resolved = resolveAirHome({ USERPROFILE: mockUser });
       const expected = path.join(mockUser, '.air');
-      expect(resolved.toLowerCase()).toBe(path.resolve(expected).toLowerCase());
+      expect(resolved.toLowerCase()).toBe(canonicalize(expected).toLowerCase());
     });
   });
 
