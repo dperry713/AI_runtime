@@ -148,26 +148,27 @@ export async function inspectReparseChain(
   const fullRoot = canonicalize(rootJail);
   const fullTarget = toFullPath(fullRoot, targetPath);
 
-  // Lexical containment pre-check
-  const normalizedTarget = normalizeSeparators(fullTarget);
-  const relative = path.relative(fullRoot, normalizedTarget);
-  if (relative.startsWith('..') || path.isAbsolute(relative)) {
-    return {
-      safe: false,
-      rootJail: fullRoot,
-      targetPath: fullTarget,
-      canonicalPath: fullTarget,
-      hasReparsePoints: false,
-      nodes: [],
-      violations: [`Target path "${fullTarget}" is lexically outside root jail "${fullRoot}"`],
-    };
-  }
-
-  const segments = relative.split(/[\\/]/).filter((s) => s.length > 0 && s !== '.');
-
   const nodes: ReparseNode[] = [];
   const violations: string[] = [];
   let hasReparse = false;
+
+  // Lexical containment pre-check using isInside (canonicalizes both paths,
+  // resolving 8.3 short names to long names for consistent comparison).
+  // Record the violation but continue to reparse-point detection so that
+  // hasReparsePoints is populated even when the target lexically escapes.
+  const lexicallyInside = isInside(fullRoot, fullTarget);
+  if (!lexicallyInside) {
+    violations.push(`Target path "${fullTarget}" escapes root jail "${fullRoot}"`);
+  }
+
+  // Walk the path from root to target, detecting reparse points at each component.
+  // Use fullTarget directly (not canonicalized) so junctions/symlinks are detectable via lstat.
+  // fullRoot is canonicalized (long form); fullTarget comes from toFullPath which preserves
+  // the original path form. path.relative works when both are long form (as in tests).
+  const relative = path.relative(fullRoot, normalizeSeparators(fullTarget));
+  const segments = relative.startsWith('..') || path.isAbsolute(relative)
+    ? []
+    : relative.split(/[\\/]/).filter((s) => s.length > 0 && s !== '.');
 
   for (let i = 0; i <= segments.length; i++) {
     const nodePath = i === 0 ? fullRoot : path.join(fullRoot, ...segments.slice(0, i));

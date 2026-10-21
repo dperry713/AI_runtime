@@ -13,6 +13,7 @@ import {
   resolveAirHome,
 } from '../../../src/config/index.js';
 import { AirError } from '../../../src/errors/index.js';
+import { canonicalize } from '../../../src/util/index.js';
 
 describe('config module', () => {
   let tempDir: string;
@@ -126,21 +127,21 @@ describe('config module', () => {
     it('uses AIR_HOME when explicitly set', () => {
       const customHome = path.join(tempDir, 'custom_air');
       const resolved = resolveAirHome({ AIR_HOME: customHome });
-      expect(resolved.toLowerCase()).toBe(path.resolve(customHome).toLowerCase());
+      expect(resolved.toLowerCase()).toBe(canonicalize(customHome).toLowerCase());
     });
 
     it('uses %LOCALAPPDATA%\\AIR on Windows', () => {
       const mockLocalAppData = path.join(tempDir, 'AppData', 'Local');
       const resolved = resolveAirHome({ LOCALAPPDATA: mockLocalAppData });
       const expected = path.join(mockLocalAppData, 'AIR');
-      expect(resolved.toLowerCase()).toBe(path.resolve(expected).toLowerCase());
+      expect(resolved.toLowerCase()).toBe(canonicalize(expected).toLowerCase());
     });
 
     it('falls back to USERPROFILE/.air if LOCALAPPDATA is absent', () => {
       const mockUser = path.join(tempDir, 'Users', 'testuser');
       const resolved = resolveAirHome({ USERPROFILE: mockUser });
       const expected = path.join(mockUser, '.air');
-      expect(resolved.toLowerCase()).toBe(path.resolve(expected).toLowerCase());
+      expect(resolved.toLowerCase()).toBe(canonicalize(expected).toLowerCase());
     });
   });
 
