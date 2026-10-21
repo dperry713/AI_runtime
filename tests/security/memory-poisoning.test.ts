@@ -58,7 +58,7 @@ function taintedContentInput(taint: MemoryTaint = 'tainted'): CreateMemoryInput 
 // ============================================================================
 
 describe('T11 — taint laundering prevention', () => {
-  it('escalates clean input to tainted when calling context is tainted', () => {
+  it('escalates clean input to untrusted when the context is tool-originated', () => {
     const policy = new MemoryWritePolicy({ preserveTaint: true });
     const result = policy.evaluate(
       taintedContentInput('clean'),
@@ -71,7 +71,7 @@ describe('T11 — taint laundering prevention', () => {
     );
     expect(result.allowed).toBe(true);
     expect(result.sanitizedInput.provenance).toBeDefined();
-    expect(result.sanitizedInput.provenance?.taint).toBe('tainted');
+    expect(result.sanitizedInput.provenance?.taint).toBe('untrusted');
     expect(result.violations.some((v) => v.rule === 'taint_escalated')).toBe(true);
   });
 
