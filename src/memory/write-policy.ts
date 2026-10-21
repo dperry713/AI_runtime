@@ -659,7 +659,7 @@ export class MemoryWritePolicy {
   assertAllowed(input: CreateMemoryInput, context?: MemoryWriteContext): CreateMemoryInput {
     const result = this.evaluate(input, context);
     if (!result.allowed) {
-      throw new AirError('POLICY_DENIED', `Memory write rejected by policy: ${result.reason}`, {
+      throw new AirError('POLICY_DENIED', `[POLICY_DENIED] Memory write rejected by policy: ${result.reason}`, {
         exposeToModel: true,
         context: {
           violations: result.violations as unknown as Record<string, unknown>,
@@ -681,6 +681,7 @@ export class MemoryWritePolicy {
   ): CreateMemoryInput[] {
     const sanitized: CreateMemoryInput[] = [];
     const errors: string[] = [];
+    const rejected: Array<{ index: number; violations: readonly MemoryWriteViolation[] }> = [];
 
     for (let i = 0; i < inputs.length; i++) {
       const item = inputs[i];
@@ -688,17 +689,19 @@ export class MemoryWritePolicy {
       const res = this.evaluate(item, context);
       if (!res.allowed) {
         errors.push(`Item ${i}: ${res.reason}`);
+        rejected.push({ index: i, violations: res.violations });
       } else {
         sanitized.push(res.sanitizedInput);
       }
     }
 
     if (errors.length > 0) {
-      throw new AirError('POLICY_DENIED', `Memory batch write rejected by policy: ${errors.join('; ')}`, {
+      throw new AirError('POLICY_DENIED', `[POLICY_DENIED] Memory batch write rejected by policy: ${errors.join('; ')}`, {
         exposeToModel: true,
         context: {
           errorCount: errors.length,
           totalCount: inputs.length,
+          violations: rejected,
         },
       });
     }
