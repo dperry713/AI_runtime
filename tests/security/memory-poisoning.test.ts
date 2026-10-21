@@ -104,6 +104,21 @@ describe('T11 — taint laundering prevention', () => {
     expect(result.sanitizedInput.provenance?.taint).not.toBe('clean');
   });
 
+  it('enforces input taint with preserveTaint=false and explicit clean context', () => {
+    const policy = new MemoryWritePolicy({ preserveTaint: false });
+    const input = { ...agentScopedInput('01HAGEN0000000000000000000', 'untrusted'), provenance: { source: 'model' as const, taint: 'untrusted' as const } };
+    const result = policy.evaluate(input, { isTainted: false, taintLevel: 'clean', source: 'model' });
+    expect(result.sanitizedInput.provenance?.taint).toBe('untrusted');
+  });
+
+  it('classifies tool-originated content as untrusted despite clean provenance and context', () => {
+    const policy = new MemoryWritePolicy({ preserveTaint: false });
+    const input = { ...agentScopedInput('01HAGEN0000000000000000000', 'clean'), provenance: { source: 'tool' as const, taint: 'clean' as const } };
+    const result = policy.evaluate(input, { isTainted: false, taintLevel: 'clean', source: 'tool' });
+    expect(result.sanitizedInput.provenance?.taint).toBe('untrusted');
+    expect(result.violations.some((v) => v.rule === 'taint_escalated')).toBe(true);
+  });
+
   it('keeps input taint when context is clean and input is already tainted', () => {
     const policy = new MemoryWritePolicy();
     const result = policy.evaluate(
@@ -330,8 +345,14 @@ describe('Batch write poisoning defense', () => {
         content: 'sk-1234567890abcdef12345678 secret key',
       },
     ];
-    expect(() => policy.enforceOnBatch(inputs)).toThrow(AirError);
-    expect(() => policy.enforceOnBatch(inputs)).toThrow(/POLICY_DENIED/);
+    let caught: unknown;
+    try { policy.enforceOnBatch(inputs); } catch (error) { caught = error; }
+    expect(caught).toBeInstanceOf(AirError);
+    expect(caught).toMatchObject({ code: 'POLICY_DENIED' });
+    expect((caught as AirError).context.violations).toEqual(expect.arrayContaining([
+      expect.objectContaining({ index: 1, violations: expect.arrayContaining([expect.objectContaining({ rule: 'secret_detected' })]) }),
+    ]));
+    expect((caught as Error).message).toMatch(/POLICY_DENIED/);
   });
 
   it('rejects entire batch when any entry has prompt injection (reject mode)', () => {
@@ -370,8 +391,12 @@ describe('assertAllowed integration with poisoning', () => {
       ...taintedContentInput('clean'),
       content: 'sk-1234567890abcdef12345678 secret injection',
     };
-    expect(() => policy.assertAllowed(input)).toThrow(AirError);
-    expect(() => policy.assertAllowed(input)).toThrow(/POLICY_DENIED/);
+    let caught: unknown;
+    try { policy.assertAllowed(input); } catch (error) { caught = error; }
+    expect(caught).toBeInstanceOf(AirError);
+    expect(caught).toMatchObject({ code: 'POLICY_DENIED' });
+    expect((caught as AirError).context.violations).toEqual(expect.arrayContaining([expect.objectContaining({ rule: 'secret_detected' })]));
+    expect((caught as Error).message).toMatch(/POLICY_DENIED/);
   });
 
   it('returns sanitized input for clean writes', () => {
