@@ -119,16 +119,18 @@ describe('T11 — taint laundering prevention', () => {
     expect(result.violations.some((v) => v.rule === 'taint_escalated')).toBe(true);
   });
 
-  it('keeps input taint when context is clean and input is already tainted', () => {
+  it('keeps the strongest input taint when context is clean', () => {
     const policy = new MemoryWritePolicy();
-    const result = policy.evaluate(
-      taintedContentInput('tainted'),
-      {
-        callingAgentId: parseAgentId('01HAGEN0000000000000000000'),
-        isTainted: false,
-        taintLevel: 'clean',
-      },
-    );
+    const input = {
+      ...agentScopedInput('01HAGEN0000000000000000000', 'tainted'),
+      provenance: { source: 'model' as const, taint: 'tainted' as const },
+    };
+    const result = policy.evaluate(input, {
+      callingAgentId: parseAgentId('01HAGEN0000000000000000000'),
+      isTainted: false,
+      taintLevel: 'clean',
+      source: 'model',
+    });
     expect(result.sanitizedInput.provenance).toBeDefined();
     expect(result.sanitizedInput.provenance?.taint).toBe('tainted');
   });
