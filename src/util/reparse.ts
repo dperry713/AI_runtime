@@ -145,7 +145,7 @@ export async function inspectReparseChain(
   validatePathSyntax(rootJail);
   validatePathSyntax(targetPath);
 
-  const fullRoot = canonicalize(rootJail);
+  const fullRoot = path.resolve(rootJail);
   const fullTarget = toFullPath(fullRoot, targetPath);
 
   const nodes: ReparseNode[] = [];
@@ -156,15 +156,15 @@ export async function inspectReparseChain(
   // resolving 8.3 short names to long names for consistent comparison).
   // Record the violation but continue to reparse-point detection so that
   // hasReparsePoints is populated even when the target lexically escapes.
-  const lexicallyInside = isInside(fullRoot, fullTarget);
+  const lexicallyInside = isInside(canonicalize(fullRoot), canonicalize(fullTarget));
   if (!lexicallyInside) {
     violations.push(`Target path "${fullTarget}" escapes root jail "${fullRoot}"`);
   }
 
   // Walk the path from root to target, detecting reparse points at each component.
   // Use fullTarget directly (not canonicalized) so junctions/symlinks are detectable via lstat.
-  // fullRoot is canonicalized (long form); fullTarget comes from toFullPath which preserves
-  // the original path form. path.relative works when both are long form (as in tests).
+  // fullRoot and fullTarget are both in long form (from path.resolve / mkdtempSync),
+  // so path.relative produces correct segments.
   const relative = path.relative(fullRoot, normalizeSeparators(fullTarget));
   const segments = relative.startsWith('..') || path.isAbsolute(relative)
     ? []
@@ -201,7 +201,7 @@ export async function inspectReparseChain(
             : path.resolve(path.dirname(nodePath), linkTarget);
           targetCanon = canonicalize(resolvedTarget);
 
-          if (!isInside(fullRoot, targetCanon)) {
+          if (!isInside(canonicalize(fullRoot), targetCanon)) {
             escapes = true;
             violations.push(
               `Reparse point at "${nodePath}" escapes root jail (points to "${targetCanon}")`,
@@ -239,7 +239,7 @@ export async function inspectReparseChain(
 
   if (violations.length === 0) {
     const finalCanon = canonicalize(fullTarget);
-    if (!isInside(fullRoot, finalCanon)) {
+    if (!isInside(canonicalize(fullRoot), finalCanon)) {
       violations.push(`Target path "${fullTarget}" escapes root jail (resolves to "${finalCanon}")`);
     }
   }
