@@ -55,7 +55,7 @@ export interface MemoryWritePolicyConfig {
   readonly piiTypes: readonly PiiType[];
   /** Action when prompt injection markers are detected. Defaults to 'force_tainted'. */
   readonly promptInjectionAction: PromptInjectionAction;
-  /** Whether tainted context cannot declare clean memory (no taint laundering). Defaults to true. */
+  /** Legacy compatibility option; taint safety invariants are enforced regardless of this value. */
   readonly preserveTaint: boolean;
   /** Allowed memory kinds. Defaults to ['episodic', 'semantic', 'working']. */
   readonly allowedKinds: readonly MemoryKind[];
@@ -582,7 +582,7 @@ export class MemoryWritePolicy {
     // verification mechanism establishes otherwise. A caller cannot override
     // this classification by supplying a clean context or clean provenance.
     const sourceIsUntrusted = context?.source === 'tool' || input.provenance?.source === 'tool';
-    const sourceTaint: MemoryTaint = sourceIsUntrusted ? 'untrusted' : 'clean';
+    const sourceTaint: MemoryTaint = sourceIsUntrusted ? 'tainted' : 'clean';
     const signals: MemoryTaint[] = [inputTaint, contextTaint, sourceTaint];
     let enforcedTaint = signals.reduce(
       (strongest, candidate) => taintRank[candidate] > taintRank[strongest] ? candidate : strongest,
