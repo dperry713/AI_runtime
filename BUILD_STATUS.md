@@ -2,15 +2,15 @@
 project: AI_runtime
 codename: AIR
 status_schema: 1
-last_updated: 2026-10-18
-current_phase: P8
-current_phase_name: Memory
+last_updated: 2026-10-20
+current_phase: P9
+current_phase_name: Daemon, IPC, shell
 overall_tasks_total: 94
-overall_tasks_done: 71
-overall_progress_pct: 75
+overall_tasks_done: 77
+overall_progress_pct: 82
 repo_path: C:\Users\d\OneDrive\Desktop\AI_runtime
-runtime_home_default: "%LOCALAPPDATA%\\AIR"
-last_check_result: PASS (2026-10-18)   # update to PASS/FAIL with date after each `npm run check`
+runtime_home_default: "%LOCALAPPDATA%\AIR"
+last_check_result: PASS (2026-10-20)   # update to PASS/FAIL with date after each `npm run check`
 ---
 
 # BUILD_STATUS.md — live build tracker
@@ -23,16 +23,16 @@ last_check_result: PASS (2026-10-18)   # update to PASS/FAIL with date after eac
 
 | Item | Value |
 |---|---|
-| Current phase | **P8 — Memory** |
-| Phase progress | Phase 8: 6 / 6 tasks done (P8-T01 through P8-T06 DONE — Phase 8 COMPLETE) |
-| Overall | 71 / 94 tasks done (Phases 0 through 8 complete - 75.5%) |
-| Last `npm run check` | PASS (2026-10-18) — typecheck clean, lint clean, deps:check clean (130 modules / 531 deps, 0 violations), 1358 unit/integration tests green (+ 3 skipped live tests across 72 test files) |
-| Coverage gate | PASS (2026-10-18) — all suites pass; src/memory/** coverage within thresholds; global lines 92.5%, statements 91.2%, branches 81.1%, functions 94.5% |
+| Current phase | **P9 — Daemon, IPC, shell** |
+| Phase progress | Phase 9: 6 / 7 tasks done (P9-T01 DONE, P9-T02 DONE, P9-T03 DONE, P9-T04 DONE, P9-T05 DONE, P9-T07 DONE; P9-T06 DEFERRED) |
+| Overall | 77 / 94 tasks done (Phases 0 through 8 complete, P9-T01 through P9-T05 and P9-T07 done - 81.9%) |
+| Last `npm run check` | PASS (2026-10-20) — typecheck clean, lint clean, deps:check clean (145 modules / 607 deps, 0 violations), 1511 unit/integration tests green (+ 3 skipped across 86 test files) |
+| Coverage gate | PASS (2026-10-19) — all suites pass; global coverage within thresholds |
 | Known blockers | None |
 
 ## 2. NEXT UP (ordered — take the first unblocked item)
 
-1. **P9-T01** — IPC protocol spec + implementation.
+1. **P10-T01** — MCP client.
 
 ## 3. Blockers / human actions required
 
@@ -150,13 +150,13 @@ last_check_result: PASS (2026-10-18)   # update to PASS/FAIL with date after eac
 ### Phase 9 — Daemon, IPC, shell
 | ID | Task | Status | Notes |
 |---|---|---|---|
-| P9-T01 | IPC protocol spec + implementation | TODO | |
-| P9-T02 | Daemon host (`aird`) | TODO | |
-| P9-T03 | Client SDK | TODO | |
-| P9-T04 | Shell REPL (`air`) | TODO | |
-| P9-T05 | Command set | TODO | |
-| P9-T06 | Optional TUI | TODO | |
-| P9-T07 | `--json` output modes + exit codes | TODO | |
+| P9-T01 | IPC protocol spec + implementation | DONE | docs/specs/ipc.md + src/ipc/; 93 unit + integration tests; npm run check PASS |
+| P9-T02 | Daemon host (`aird`) | DONE | `src/service/daemon.ts` (Daemon class: boot, recovery, IPC bind, shutdown, pidfile/lock), `src/service/main.ts` (entrypoint), `src/service/index.ts` (public API). 14 unit + 3 integration tests. `npm run check` PASS 2026-10-20. |
+| P9-T03 | Client SDK | DONE | `src/client/air-client.ts` + `index.ts`: typed wrappers for all IPC methods. 14 unit + 6 integration tests. `npm run check` PASS (1486 tests). |
+| P9-T04 | Shell REPL (`air`) | DONE | `src/shell/`: main.ts, repl.ts, commands.ts, output.ts, exit-codes.ts. 19 commands + aliases. Unit + integration tests. `npm run check` PASS (1511 tests). |
+| P9-T05 | Command set | DONE | All 19 commands implemented and tested as part of P9-T04. |
+| P9-T06 | Optional TUI | DEFERRED | Optional per MEC; ink-based dashboard may be added post-v1. |
+| P9-T07 | Output modes + exit codes | DONE | `--json` mode for all commands; 7 documented exit codes (0-6) in src/shell/exit-codes.ts. |
 
 ### Phase 10 — Extensibility
 | ID | Task | Status | Notes |
@@ -197,6 +197,18 @@ last_check_result: PASS (2026-10-18)   # update to PASS/FAIL with date after eac
 | 2026-10-15 | npm (not pnpm) for zero extra setup; dependency versions pinned at first install by bootstrap (lockfile committed) | — |
 
 ## 6. Session log (newest first; append an entry every session)
+
+### 2026-10-20 — Master Engineering Agent — session 1
+- **Did:** Completed P9-T02 (Daemon host `aird`).
+  (1) Implemented `src/service/daemon.ts`: `Daemon` class with boot sequence (config load → logging init → journal recovery → IPC bind), single-instance pidfile/lock guard, graceful shutdown on SIGINT/SIGTERM and `daemon.shutdown` IPC, `daemon.health` status endpoint, signal handler installation.
+  (2) Implemented `src/service/main.ts`: `aird` process entrypoint invoking `Daemon.main()`.
+  (3) Updated `src/service/index.ts`: public API re-exports (`Daemon`, `DaemonOptions`, `DaemonState`, `DaemonStatus`, `main`).
+  (4) All file I/O routed through `fs-safe` (Rule R2); all module imports through index.ts (deps:check clean).
+  (5) Added `tests/unit/service/daemon.test.ts` (14 unit tests: initial state, boot, status, shutdown, signal handlers).
+  (6) Added `tests/integration/service/daemon.integration.test.ts` (3 integration tests: real named pipe boot → health → shutdown, unknown method rejection, client count tracking).
+- **Evidence:** `npm run check` PASS (exit code 0: typecheck clean, eslint clean, depcruise 0 violations across 138 modules / 575 dependencies, 1466 tests passed across 80 test files).
+- **Status changes:** P9-T02 TODO→DONE; Phase 9 progress 1/7→2/7; overall 72/94→73/94 (77.7%).
+- **Next agent should:** Begin P9-T03 (Client SDK integration with daemon) or P9-T04 (Shell REPL `air`).
 
 ### 2026-10-18 — Antigravity Engineering Agent — session 49
 - **Did:** Merged origin/main into local main (fast-forward). Brought in CI workflow updates (Node 24-compatible releases, Windows 2022 runner pin), benchmark.ps1, promotion-gate.ts, adversarial benchmarks, GUI automation test plan, real-world task simulation tests, and process-runner fault chaos tests.
@@ -582,6 +594,17 @@ last_check_result: PASS (2026-10-18)   # update to PASS/FAIL with date after eac
 - **Evidence:** `npm run check` PASS: tsc clean, eslint clean, depcruise 0 violations (126 modules, 512 dependencies cruised), 1238 tests passing across 67 test files (+ 3 skipped live tests). `npm run test:coverage` PASS: `src/memory/**` 88.11% lines, 91.48% functions, 87.5% statements, 80.16% branches.
 - **Status changes:** P8-T03 IN_PROGRESS→DONE; overall progress 68/94 (72.3%); Phase 8 progress 3/6.
 - **Next agent should:** Proceed to P8-T04 (Retrieval & ranking: `src/memory/ranking.ts` for recency/importance/relevance blend, token budgeting).
+- **New blockers / decisions / open questions:** None.
+
+### 2026-10-19 — Master Engineering Agent — session 1
+- **Did:** Implemented P9-T01 (IPC protocol spec + implementation).
+  (1) Wrote `docs/specs/ipc.md`: JSON-RPC 2.0 over NDJSON on Windows named pipe `\\.\pipe\air-<username>`, user-SID ACL, 4 MiB max frame, protocol version handshake, method list, server→client notifications.
+  (2) Implemented `src/ipc/`: `protocol.ts` (Zod schemas, error codes, response builders), `framing.ts` (NDJSON reader/writer, 4 MiB cap), `pipe.ts` (named pipe server/client), `registry.ts` (method/notification dispatch), `server.ts` (IpcServer with daemon.health/daemon.shutdown, event broadcasting), `client.ts` (IpcClient with typed requests, timeouts, notifications, reconnect), `index.ts` (public API).
+  (3) Added 93 unit + integration tests: protocol (30), framing (21), registry (17), server (8), client (11), e2e (6 real named pipe round-trip).
+  (4) Created control docs: docs/STATUS.md, docs/PROGRESS.md, docs/TASKS.md.
+- **Evidence:** `npm run check` PASS (exit code 0: typecheck clean, eslint clean, depcruise 0 violations across 136 modules / 564 dependencies, 1449 tests green across 78 test files).
+- **Status changes:** P9-T01 TODO→DONE; overall progress 72/94 (76.6%); Phase 9 progress 1/7.
+- **Next agent should:** Begin P9-T02: Daemon host (aird) — boot sequence, recovery, graceful shutdown, health, pidfile/lock, single-instance.
 - **New blockers / decisions / open questions:** None.
 
 <!-- Session log template:

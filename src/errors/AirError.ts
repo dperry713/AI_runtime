@@ -114,8 +114,6 @@ export class AirError extends Error {
     this.cause = options.cause;
     this.context = options.context ?? {};
     this.exposeToModel = options.exposeToModel ?? false;
-
-    Object.setPrototypeOf(this, AirError.prototype);
   }
 
   static isRetryable(code: ErrorCode): boolean {
