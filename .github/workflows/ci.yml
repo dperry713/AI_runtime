@@ -12,7 +12,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  security:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    env:
+      GYP_MSVS_VERSION: '2022'
+      npm_config_msvs_version: '2022'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:security
+
   check:
+    needs: security
     runs-on: windows-2022
     timeout-minutes: 30
     env:
@@ -32,7 +48,6 @@ jobs:
       - run: npm run deps:check
       - run: npm run test:coverage
       - run: npm run test:e2e
-      - run: npm run test:security
       - name: Repeated benchmark and accuracy suite
         run: ./scripts/benchmark.ps1 -Iterations 3
         shell: pwsh
