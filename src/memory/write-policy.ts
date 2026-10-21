@@ -582,7 +582,7 @@ export class MemoryWritePolicy {
     // verification mechanism establishes otherwise. A caller cannot override
     // this classification by supplying a clean context or clean provenance.
     const sourceIsUntrusted = context?.source === 'tool' || input.provenance?.source === 'tool';
-    const sourceTaint: MemoryTaint = sourceIsUntrusted ? 'tainted' : 'clean';
+    const sourceTaint: MemoryTaint = sourceIsUntrusted ? 'untrusted' : 'clean';
     const signals: MemoryTaint[] = [inputTaint, contextTaint, sourceTaint];
     let enforcedTaint = signals.reduce(
       (strongest, candidate) => taintRank[candidate] > taintRank[strongest] ? candidate : strongest,
