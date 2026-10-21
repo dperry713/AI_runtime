@@ -136,75 +136,146 @@ export function validatePathSyntax(rawPath: string): void {
 
   const normalized = normalizeSeparators(rawPath);
 
-  // Reject UNC paths and device namespaces
-  if (normalized.startsWith('\\\\') || normalized.startsWith('\\\\\\\\?\\\\')) {
-    throw new AirError('PATH_NOT_ALLOWED', `UNC and device namespace paths are forbidden: "${rawPath}"`);
+  // Reject UNC paths (\\server\share) and device namespaces (\\.\)
+  // but allow \\?\<drive>:\ extended-length prefix ONLY for paths > 260 chars.
+  // Short paths with \\?\ prefix are rejected to prevent bypassing path validation.
+  let extendedPrefixLen = 0;
+  if (normalized.startsWith('\\\\')) {
+    const isExtendedLength =
+      normalized.length > 6 &&
+      normalized[0] === '\\' &&
+      normalized[1] === '\\' &&
+      normalized[2] === '?' &&
+      normalized[3] === '\\' &&
+      normalized[4] !== undefined &&
+      /[a-zA-Z]/.test(normalized[4]) &&
+      normalized[5] === ':' &&
+      // The path without the \\?\ prefix must exceed MAX_PATH (260 chars)
+      normalized.slice(6).length > 260;
+    if (!isExtendedLength) {
+      throw new AirError('PATH_NOT_ALLOWED', `UNC and device namespace paths are forbidden: "${rawPath}"`);
+    }
+    extendedPrefixLen = 4; // length of "\\?\"
   }
 
-  // Reject drive-relative paths (e.g. "C:file.txt") and Alternate Data Streams (colon anywhere other than drive letter position, e.g. "C:\")
-  const drivePrefix = /^[a-zA-Z]:/.exec(normalized)?.[0];
+  // Reject drive-relative paths (e.g. "C:file.txt") and Alternate Data Streams
+  // (colon anywhere other than drive letter position, e.g. "C:\")
+  // When the path has a \\?\ prefix, the drive letter is at position 4-5.
+  const drivePrefixMatch = /^[a-zA-Z]:/.exec(normalized.slice(extendedPrefixLen))?.[0];
+  const drivePrefix = drivePrefixMatch ? normalized.slice(extendedPrefixLen, extendedPrefixLen + 2) : undefined;
   if (drivePrefix) {
-    if (normalized.length > 2 && normalized[2] !== '\\') {
+    const driveColonIdx = extendedPrefixLen + 2;
+    if (normalized.length > driveColonIdx && normalized[driveColonIdx] !== '\\') {
       throw new AirError('PATH_NOT_ALLOWED', `Drive-relative paths without root slash are forbidden: "${rawPath}"`);
     }
   }
-  const afterDrive = drivePrefix ? normalized.slice(2) : normalized;
+  const afterDrive = normalized.slice(extendedPrefixLen + (drivePrefix ? 2 : 0));
   if (afterDrive.includes(':')) {
     throw new AirError('PATH_NOT_ALLOWED', `Alternate Data Streams (ADS) are forbidden: "${rawPath}"`);
   }
 
   // Check all segments
   const segments = normalized.split('\\');
+  let segNum = 0;
   for (const seg of segments) {
+    // Skip \\?\ prefix segments: '', '', '?', <drive>:
+    if (extendedPrefixLen > 0 && segNum < 4) {
+      segNum++;
+      continue;
+    }
     if (!seg || seg === drivePrefix) {
+      segNum++;
       continue;
     }
     rejectUnsafeName(seg);
+    segNum++;
   }
 }
 
 /**
  * Resolves a path, canonicalizing drive letters, expanding 8.3 short names,
  * and resolving any symbolic links or NTFS junctions for existing components.
+ * Supports extended-length (\\?\\) paths for paths longer than MAX_PATH (260 chars).
  */
 export function canonicalize(rawPath: string): string {
   validatePathSyntax(rawPath);
 
-  const resolved = path.resolve(rawPath);
+  const normalized = normalizeSeparators(rawPath);
+
+  // Strip \\?\ extended-length prefix for path.resolve; realpathSync handles it natively
+  let workingPath = normalized;
+  if (
+    workingPath.length > 6 &&
+    workingPath[0] === '\\' &&
+    workingPath[1] === '\\' &&
+    workingPath[2] === '?' &&
+    workingPath[3] === '\\'
+  ) {
+    workingPath = workingPath.slice(4);
+  }
+
+  const resolved = path.resolve(workingPath);
 
   // Normalize drive letter to uppercase for consistent comparison (e.g. c:\ -> C:\)
-  let normalized = resolved;
-  if (/^[a-z]:/i.test(normalized)) {
-    const driveLetter = normalized[0]?.toUpperCase() ?? '';
-    normalized = driveLetter + normalized.slice(1);
+  let canonical = resolved;
+  if (/^[a-z]:/i.test(canonical)) {
+    const driveLetter = canonical[0]?.toUpperCase() ?? '';
+    canonical = driveLetter + canonical.slice(1);
   }
 
   // Try realpathSync to resolve junctions, symlinks, and 8.3 short names
   try {
-    const real = fs.realpathSync.native(normalized);
-    if (/^[a-z]:/i.test(real)) {
-      return (real[0]?.toUpperCase() ?? '') + real.slice(1);
+    const real = fs.realpathSync.native(canonical);
+    let driveNormalized = /^[a-z]:/i.test(real)
+      ? (real[0]?.toUpperCase() ?? '') + real.slice(1)
+      : real;
+    // Strip any \\?\ prefix that realpathSync may have added
+    if (driveNormalized.startsWith('\\\\?\\')) {
+      driveNormalized = driveNormalized.slice(4);
     }
-    return real;
+    // Only add \\?\ prefix if the result is longer than MAX_PATH (260 chars)
+    return driveNormalized.length > 260 ? '\\\\?\\' + driveNormalized : driveNormalized;
   } catch {
     // If target does not exist, resolve the closest existing ancestor
-    let current = path.dirname(normalized);
-    const tails: string[] = [path.basename(normalized)];
+    let current = path.dirname(canonical);
+    const tails: string[] = [path.basename(canonical)];
 
     while (current && current !== path.dirname(current)) {
       try {
-        const realAncestor = fs.realpathSync.native(current);
+        let realAncestor = fs.realpathSync.native(current);
+        if (realAncestor.startsWith('\\\\?\\')) {
+          realAncestor = realAncestor.slice(4);
+        }
         const driveNormalized = /^[a-z]:/i.test(realAncestor)
           ? (realAncestor[0]?.toUpperCase() ?? '') + realAncestor.slice(1)
           : realAncestor;
-        return path.join(driveNormalized, ...tails);
+
+        // Try to resolve the full joined path to expand 8.3 short names in tails
+        const fullTailPath = path.join(driveNormalized, ...tails);
+        try {
+          let realFull = fs.realpathSync.native(fullTailPath);
+          if (realFull.startsWith('\\\\?\\')) {
+            realFull = realFull.slice(4);
+          }
+          const driveFullNormalized = /^[a-z]:/i.test(realFull)
+            ? (realFull[0]?.toUpperCase() ?? '') + realFull.slice(1)
+            : realFull;
+          return driveFullNormalized.length > 260
+            ? '\\\\?\\' + driveFullNormalized
+            : driveFullNormalized;
+        } catch {
+          // Tails don't fully exist; return joined path with \\?\ prefix if long
+          const joined = path.join(driveNormalized, ...tails);
+          return joined.length > 260 ? '\\\\?\\' + joined : joined;
+        }
       } catch {
         tails.unshift(path.basename(current));
         current = path.dirname(current);
       }
     }
 
-    return normalized;
+    const result = canonical;
+    return result.length > 260 ? '\\\\?\\' + result : result;
   }
 }
 

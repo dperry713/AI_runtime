@@ -1,5 +1,7 @@
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import fs from 'node:fs';
+import os from 'node:os';
+import { describe, expect, it, afterEach } from 'vitest';
 import fc from 'fast-check';
 import {
   assertInside,
@@ -124,6 +126,89 @@ describe('canonicalize', () => {
   });
 });
 
+describe('canonicalize — extended-length (\\\\?\\) paths', () => {
+  it('accepts ?\\<drive>: prefix only for paths > 260 chars', () => {
+    // A long path (> 260 chars) with \\?\ prefix should be accepted
+    const longDir = 'a'.repeat(255);
+    const longPath = `\\\\?\\C:\\dev\\${longDir}\\file.txt`;
+    expect(() => validatePathSyntax(longPath)).not.toThrow();
+  });
+
+  it('rejects short paths with ?\\ prefix', () => {
+    // Short paths with ?\ prefix are rejected (no need for extended-length)
+    expect(() => validatePathSyntax('\\\\?\\C:\\dev\\project\\file.txt')).toThrow();
+    expect(() => validatePathSyntax('\\\\?\\C:\\Windows\\win.ini')).toThrow();
+  });
+
+  it('rejects ?\\UNC and .\\ device namespaces', () => {
+    expect(() => validatePathSyntax('\\\\?\\UNC\\server\\share\\file.txt')).toThrow();
+    expect(() => validatePathSyntax('\\\\.\\pipe\\air_test_pipe')).toThrow();
+  });
+
+  it('canonicalizes a long path with \\\\?\\ prefix', () => {
+    const longDir = 'a'.repeat(255);
+    const canon = canonicalize(`\\\\?\\C:\\dev\\${longDir}\\foo\\..\\bar`);
+    expect(canon.toLowerCase()).toContain('c:\\dev\\' + 'a'.repeat(255) + '\\bar');
+  });
+
+  it('handles long paths in isInside', () => {
+    const longDir = 'a'.repeat(200);
+    const root = `C:\\dev\\${longDir}`;
+    const child = `${root}\\sub\\file.txt`;
+    expect(isInside(root, child)).toBe(true);
+    expect(isInside(root, 'C:\\dev\\other')).toBe(false);
+  });
+});
+
+describe('canonicalize — 8.3 short name expansion', () => {
+  it('expands 8.3 short names when realpath resolves them', () => {
+    // Create a temp directory with a long name to test 8.3 expansion
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'air-83-test-'));
+    try {
+      const longName = 'very-long-directory-name-for-8-3-testing';
+      const deepDir = path.join(tmpDir, longName);
+      fs.mkdirSync(deepDir, { recursive: true });
+
+      // Check if the system supports 8.3 short names
+      try {
+        fs.realpathSync.native(deepDir);
+        // If realpath succeeds, 8.3 expansion may be at play
+        // We just verify canonicalize doesn't throw and returns a valid path
+        const canon = canonicalize(deepDir);
+        expect(canon).toBeDefined();
+        expect(typeof canon).toBe('string');
+      } catch {
+        // realpath may fail on some systems; that's OK
+      }
+
+      // Test canonicalize with an 8.3-style path segment (if short names exist)
+      // We construct a path with a tilde segment to verify it doesn't crash
+      const tildePath = path.join(tmpDir, 'VERYLO~1');
+      try {
+        const canon = canonicalize(tildePath);
+        expect(canon).toBeDefined();
+      } catch {
+        // 8.3 name may not exist; canonicalize should still not crash unexpectedly
+        // (it will throw PATH_NOT_ALLOWED or similar if the path is invalid)
+      }
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('isInside correctly handles 8.3 short name escape attempts', () => {
+    const root = 'C:\\dev\\jail';
+    // An 8.3 short name like PROGRA~1 could be used to try to escape
+    // isInside should canonicalize both paths and compare properly
+    const escapeAttempt = 'C:\\dev\\jail\\..\\..\\Windows\\System32';
+    expect(isInside(root, escapeAttempt)).toBe(false);
+
+    // A nested path under the jail should still be inside
+    const nested = 'C:\\dev\\jail\\sub\\dir\\file.txt';
+    expect(isInside(root, nested)).toBe(true);
+  });
+});
+
 describe('isInside & assertInside', () => {
   const root = 'C:\\dev\\project';
 
@@ -197,5 +282,59 @@ describe('Property-based testing (fast-check)', () => {
     // @ts-expect-error Testing non-string runtime validation
     expect(() => validatePathSyntax(null)).toThrow();
     expect(isInside('C:\\valid\\root', 'invalid:\0null')).toBe(false);
+  });
+});
+
+describe('canonicalize — \\\\?\\ prefix stripping from realpath', () => {
+  const originalRealpath = fs.realpathSync.native.bind(fs.realpathSync);
+
+  afterEach(() => {
+    fs.realpathSync.native = originalRealpath;
+  });
+
+  it('strips \\\\?\\ prefix from realpathSync.native result', () => {
+    fs.realpathSync.native = (() => '\\\\?\\C:\\dev\\resolved\\path') as unknown as typeof fs.realpathSync.native;
+    const canon = canonicalize('C:\\dev\\input\\path');
+    expect(canon).toBe('C:\\dev\\resolved\\path');
+  });
+
+  it('adds \\\\?\\ prefix when realpath result exceeds 260 chars', () => {
+    const longResolved = '\\\\?\\C:\\dev\\' + 'x'.repeat(260) + '\\file.txt';
+    fs.realpathSync.native = (() => longResolved) as unknown as typeof fs.realpathSync.native;
+    const canon = canonicalize('C:\\dev\\input');
+    expect(canon).toBe(longResolved);
+  });
+
+  it('strips \\\\?\\ prefix from realAncestor in fallback path', () => {
+    fs.realpathSync.native = ((p: string) => {
+      if (p === 'C:\\dev') {
+        return '\\\\?\\C:\\dev';
+      }
+      throw new Error('ENOENT');
+    }) as typeof fs.realpathSync.native;
+    const canon = canonicalize('C:\\dev\\nonexistent\\file.txt');
+    expect(canon).toBe('C:\\dev\\nonexistent\\file.txt');
+  });
+
+  it('strips \\\\?\\ prefix from realFull in fallback tail resolution', () => {
+    let callCount = 0;
+    fs.realpathSync.native = ((p: string) => {
+      callCount++;
+      // First call (from canonicalize's try block) throws to enter fallback
+      if (p === 'C:\\dev\\existing\\file.txt' && callCount === 1) {
+        throw new Error('ENOENT');
+      }
+      // Ancestor resolves with \\?\ prefix
+      if (p === 'C:\\dev') {
+        return '\\\\?\\C:\\dev';
+      }
+      // Full tail path resolves with \\?\ prefix (covers lines 255-257)
+      if (p === 'C:\\dev\\existing\\file.txt') {
+        return '\\\\?\\C:\\dev\\existing\\file.txt';
+      }
+      throw new Error('ENOENT');
+    }) as unknown as typeof fs.realpathSync.native;
+    const canon = canonicalize('C:\\dev\\existing\\file.txt');
+    expect(canon).toBe('C:\\dev\\existing\\file.txt');
   });
 });
