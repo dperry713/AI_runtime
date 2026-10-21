@@ -567,28 +567,35 @@ export class MemoryWritePolicy {
     // ------------------------------------------------------------------------
     // Rule 6: Provenance & Taint Enforcement (Rule S9 / Threat T11)
     // ------------------------------------------------------------------------
-    // 1. Determine baseline taint
-    let enforcedTaint: MemoryTaint = input.provenance?.taint ?? 'clean';
-
-    // If caller context is tainted or untrusted, taint CANNOT be clean
-    const contextIsTainted = Boolean(
-      context?.isTainted ||
-        context?.taintLevel === 'tainted' ||
-        context?.taintLevel === 'untrusted' ||
-        context?.source === 'tool',
+    // 1. Determine the strongest applicable taint signal. This is a security
+    // invariant, not a configurable preference: preserveTaint=false must never
+    // permit untrusted input to be persisted as clean.
+    const taintRank: Record<MemoryTaint, number> = { clean: 0, tainted: 1, untrusted: 2 };
+    const inputTaint = input.provenance?.taint ?? 'clean';
+    const contextTaint: MemoryTaint =
+      context?.taintLevel === 'untrusted'
+        ? 'untrusted'
+        : context?.taintLevel === 'tainted' || context?.isTainted === true
+          ? 'tainted'
+          : 'clean';
+    // Tool-originated content is untrusted unless a future, explicit
+    // verification mechanism establishes otherwise. A caller cannot override
+    // this classification by supplying a clean context or clean provenance.
+    const sourceIsUntrusted = context?.source === 'tool' || input.provenance?.source === 'tool';
+    const sourceTaint: MemoryTaint = sourceIsUntrusted ? 'untrusted' : 'clean';
+    const signals: MemoryTaint[] = [inputTaint, contextTaint, sourceTaint];
+    let enforcedTaint = signals.reduce(
+      (strongest, candidate) => taintRank[candidate] > taintRank[strongest] ? candidate : strongest,
+      'clean' as MemoryTaint,
     );
 
-    if (this.config.preserveTaint && contextIsTainted) {
-      const minTaint: MemoryTaint = context?.taintLevel === 'untrusted' ? 'untrusted' : 'tainted';
-      if (enforcedTaint === 'clean') {
-        enforcedTaint = minTaint;
-        violations.push({
-          rule: 'taint_escalated',
-          message: `Memory taint escalated to '${minTaint}' because calling context is tainted`,
-          field: 'provenance.taint',
-          severity: 'warning',
-        });
-      }
+    if (taintRank[enforcedTaint] > taintRank[inputTaint]) {
+      violations.push({
+        rule: 'taint_escalated',
+        message: `Memory taint escalated to '${enforcedTaint}' based on input provenance, context, or untrusted source classification`,
+        field: 'provenance.taint',
+        severity: 'warning',
+      });
     }
 
     // If prompt injection was detected and action is 'force_tainted', enforce 'untrusted'
