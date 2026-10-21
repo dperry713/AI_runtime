@@ -27,6 +27,14 @@ function isPlainObject(item: unknown): item is Record<string, unknown> {
   return typeof item === 'object' && item !== null && !Array.isArray(item);
 }
 
+/** Keys that could be used for prototype pollution if assigned on an object. */
+const PROTOTYPE_POLLUTION_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+/** Returns true if a key could be used for prototype pollution. */
+function isPrototypePollutionKey(key: string): boolean {
+  return PROTOTYPE_POLLUTION_KEYS.has(key);
+}
+
 function deepMerge(
   target: Record<string, unknown>,
   source: Record<string, unknown>,
@@ -37,6 +45,7 @@ function deepMerge(
 ): void {
   for (const [key, sourceVal] of Object.entries(source)) {
     if (sourceVal === undefined) continue;
+    if (isPrototypePollutionKey(key)) continue;
     const currentPath = prefix ? `${prefix}.${key}` : key;
 
     const targetVal = target[key];
@@ -69,6 +78,7 @@ function setNestedProperty(
   for (let i = 0; i < parts.length - 1; i++) {
     const part = parts[i];
     if (!part) continue;
+    if (isPrototypePollutionKey(part)) continue;
     const existing = curr[part];
     if (!isPlainObject(existing)) {
       curr[part] = {};
@@ -79,7 +89,7 @@ function setNestedProperty(
     }
   }
   const lastPart = parts[parts.length - 1];
-  if (lastPart) {
+  if (lastPart && !isPrototypePollutionKey(lastPart)) {
     curr[lastPart] = value;
     provenance[propPath] = { source: sourceType, detail };
   }
