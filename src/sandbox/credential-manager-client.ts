@@ -18,36 +18,13 @@
 
 import { spawn } from 'node:child_process';
 import { AirError } from '../errors/index.js';
+import type { CmRequest, CmResponse, CredentialListEntry, CredentialResult, CredentialSpec } from '../types/index.js';
+export type { CmRequest, CmResponse, CredentialListEntry, CredentialResult, CredentialSpec } from '../types/index.js';
 import { getLogger, type ComponentLogger } from '../observability/index.js';
 
 const defaultLogger = getLogger('credential-manager-client');
 
 export const CREDENTIAL_MANAGER_PROTOCOL_VERSION = 1;
-
-export interface CredentialSpec {
-  /** Target name for the credential (e.g. "AIR:MasterKey:<vault-dir>"). */
-  readonly targetName: string;
-  /** Secret value (password/credential blob). */
-  readonly credentialBlob: string;
-  /** Optional user name associated with the credential. */
-  readonly userName?: string | undefined;
-  /** Optional comment/description. */
-  readonly comment?: string | undefined;
-  /** Persistence: "session", "enterprise", or "local_machine". */
-  readonly persist?: 'session' | 'enterprise' | 'local_machine' | undefined;
-}
-
-export interface CredentialResult {
-  readonly targetName: string;
-  readonly success: boolean;
-  readonly message: string;
-}
-
-export interface CredentialListEntry {
-  readonly targetName: string;
-  readonly userName: string | undefined;
-  readonly comment: string | undefined;
-}
 
 export interface CredentialManagerClientOptions {
   readonly helperPath?: string | undefined;
@@ -55,19 +32,6 @@ export interface CredentialManagerClientOptions {
   /** Optional mock handler for testing (bypasses spawning air-sandbox.exe). */
   readonly mockHandler?: ((request: CmRequest) => Promise<CmResponse>) | undefined;
 }
-
-export type CmRequest =
-  | { readonly op: 'cm_write'; readonly credential: CredentialSpec }
-  | { readonly op: 'cm_read'; readonly targetName: string }
-  | { readonly op: 'cm_delete'; readonly targetName: string }
-  | { readonly op: 'cm_list'; readonly filter?: string | undefined };
-
-export type CmResponse =
-  | { readonly type: 'cm_credential_written'; readonly version: number; readonly targetName: string; readonly success: boolean }
-  | { readonly type: 'cm_credential_read'; readonly version: number; readonly targetName: string; readonly credentialBlob: string | undefined; readonly userName: string | undefined; readonly found: boolean }
-  | { readonly type: 'cm_credential_deleted'; readonly version: number; readonly targetName: string; readonly success: boolean }
-  | { readonly type: 'cm_credentials_listed'; readonly version: number; readonly credentials: readonly CredentialListEntry[] }
-  | { readonly type: 'error'; readonly version: number; readonly code: string; readonly message: string };
 
 /**
  * Credential Manager client for managing Windows credentials via air-sandbox.exe.
