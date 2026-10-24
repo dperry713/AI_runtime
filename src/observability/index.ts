@@ -82,3 +82,9 @@ export {
   startPeriodicMetricsSnapshot,
   stopPeriodicMetricsSnapshot,
 } from './metrics.js';
+export {
+  type EtwEvent,
+  type EtwProviderOptions,
+  EtwProvider,
+  createEtwProvider,
+} from './etw.js';

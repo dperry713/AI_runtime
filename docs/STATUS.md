@@ -19,4 +19,4 @@
 None.
 
 ## Last Verification
-`npm run check` — typecheck PASS, lint PASS, deps:check has 1 pre-existing violation (credential-manager.ts → sandbox/index.ts layer violation), npm test: all tests pass (1535 passed, 3 skipped), including 7/7 secrets tests and 7/7 WFP tests.
+`npm run check` — typecheck PASS, lint PASS, deps:check has 1 pre-existing violation (credential-manager.ts → sandbox/index.ts layer violation), npm test: all tests pass (1549 passed, 3 skipped), including 14/14 ETW tests, 7/7 secrets tests, 7/7 WFP tests, 6/6 AppContainer tests.

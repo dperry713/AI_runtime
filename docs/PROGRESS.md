@@ -187,6 +187,25 @@
 
 ---
 
+## W4: ETW telemetry (DONE 2026-10-24)
+
+**Requirements covered:** R-008, R-009
+
+**Files changed:**
+- `src/observability/etw.ts` — `EtwProvider` class with SSE event stream, EventSource consumer support, event emission alongside JSONL audit log
+- `src/observability/streams.ts` — `StreamDispatcher` integrates ETW emission into JSONL audit log pipeline via `etwProvider.emitFromLogRecord(record)`
+- `src/observability/logger.ts` — `initLogging` accepts `etwProvider` option
+- `src/observability/index.ts` — Exports ETW types and client
+
+**Commands run:**
+- `npx vitest run tests/unit/observability/etw.test.ts` — PASS (14/14 tests)
+- `npm run typecheck` — PASS
+- `npm run lint` — PASS
+
+**Result:** ETW provider emits security-relevant events (tool execution, policy decisions, approvals, sandbox events, secret access, credential injection) alongside the hash-chained JSONL audit log. Each ETW event carries correlation IDs matching the JSONL audit record. SSE event stream available for EventSource consumers.
+
+---
+
 ## Security review gap fixes (DONE 2026-10-24)
 
 **Requirements covered:** T11 (taint laundering), R4 (POLICY_DENIED messaging), R2 (atomic disk write)

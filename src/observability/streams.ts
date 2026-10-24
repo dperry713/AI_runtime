@@ -1,6 +1,7 @@
 import * as path from 'node:path';
 import type { LoggingConfig } from '../config/index.js';
 import { enforceTotalLogBudget, RotatingFileStream } from './rotation.js';
+import type { EtwLogRecord } from './etw.js';
 import type {
   AgentId,
   EventId,
@@ -46,6 +47,14 @@ export interface LogSink {
   close?(): Promise<void> | void;
 }
 
+/**
+ * Minimal ETW provider interface for StreamDispatcher integration.
+ * Defined locally to avoid circular dependency with etw.ts.
+ */
+export interface EtwProviderLike {
+  emitFromLogRecord(record: EtwLogRecord): void;
+}
+
 export class MemoryLogSink implements LogSink {
   public records: LogRecord[] = [];
 
@@ -67,10 +76,12 @@ export class StreamDispatcher implements LogSink {
   private readonly testSinks: LogSink[] = [];
   private readonly logsDir: string;
   private readonly maxTotalBytes: number;
+  private readonly etwProvider: EtwProviderLike | undefined;
 
-  constructor(logsDir: string, config: LoggingConfig) {
+  constructor(logsDir: string, config: LoggingConfig, etwProvider?: EtwProviderLike) {
     this.logsDir = logsDir;
     this.maxTotalBytes = config.maxTotalMb * 1024 * 1024;
+    this.etwProvider = etwProvider;
 
     const streamSpecs: Record<LogStreamName, { fileName: string; maxSizeMb: number; keep: number }> = {
       runtime: { fileName: 'runtime.log', maxSizeMb: config.rotate.maxSizeMb, keep: config.rotate.keep },
@@ -111,7 +122,16 @@ export class StreamDispatcher implements LogSink {
       }
     }
 
-    // 2. Format to JSONL and write to appropriate file stream
+    // 2. Emit ETW event alongside the JSONL audit log
+    if (this.etwProvider) {
+      try {
+        this.etwProvider.emitFromLogRecord(record);
+      } catch {
+        // ETW emission failures are non-fatal
+      }
+    }
+
+    // 3. Format to JSONL and write to appropriate file stream
     const line = `${JSON.stringify(record)}\n`;
     const target = this.fileStreams.get(record.stream) ?? this.fileStreams.get('runtime');
     if (target) {

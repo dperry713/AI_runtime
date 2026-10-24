@@ -8,7 +8,7 @@ import { currentContext } from './context.js';
 import { redactObject, redactString } from './redaction.js';
 import type { LogRecord, LogSink, LogStreamName } from './streams.js';
 import { MemoryLogSink, StreamDispatcher } from './streams.js';
-
+import type { EtwProvider } from './etw.js';
 const LOG_LEVEL_WEIGHTS: Record<LogLevel, number> = {
   trace: 10,
   debug: 20,
@@ -34,6 +34,7 @@ export interface LoggingInitOptions {
   clock?: Clock | undefined;
   sink?: LogSink | undefined;
   config?: LoggingConfig | undefined;
+  etwProvider?: EtwProvider | undefined;
 }
 
 let activeClock: Clock = new SystemClock();
@@ -223,7 +224,7 @@ export function initLogging(options: LoggingInitOptions = {}): void {
     activeDispatcher.close();
   }
 
-  activeDispatcher = new StreamDispatcher(logsDir, activeConfig);
+  activeDispatcher = new StreamDispatcher(logsDir, activeConfig, options.etwProvider);
 
   if (options.sink) {
     activeDispatcher.addTestSink(options.sink);
