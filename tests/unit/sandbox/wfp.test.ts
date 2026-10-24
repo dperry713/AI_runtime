@@ -148,6 +148,40 @@ describe('WfpClient', () => {
     });
   });
 
+  it('addFilter throws on unexpected response type', async () => {
+    const client = new WfpClient({
+      mockHandler: makeMockHandler([
+        { type: 'wfp_filter_removed', version: 1, filterId: 1, success: true } as unknown as WfpResponse,
+      ]),
+    });
+    await expect(client.addFilter({ name: 'f', action: 'block' })).rejects.toThrow(AirError);
+  });
+
+  it('removeFilter throws on unexpected response type', async () => {
+    const client = new WfpClient({
+      mockHandler: makeMockHandler([
+        { type: 'wfp_filter_added', version: 1, filterId: 1, name: 'f' } as unknown as WfpResponse,
+      ]),
+    });
+    await expect(client.removeFilter(1)).rejects.toThrow(AirError);
+  });
+
+  it('listFilters throws on unexpected response type and error', async () => {
+    const client1 = new WfpClient({
+      mockHandler: makeMockHandler([
+        { type: 'error', version: 1, code: 'ERR', message: 'Fail' },
+      ]),
+    });
+    await expect(client1.listFilters()).rejects.toThrow(AirError);
+
+    const client2 = new WfpClient({
+      mockHandler: makeMockHandler([
+        { type: 'wfp_filter_added', version: 1, filterId: 1, name: 'f' } as unknown as WfpResponse,
+      ]),
+    });
+    await expect(client2.listFilters()).rejects.toThrow(AirError);
+  });
+
   it('createDefaultDenyFilter produces correct spec', () => {
     const deny = createDefaultDenyFilter('powershell.exe');
     expect(deny.name).toBe('AIR WFP Default Deny powershell.exe');

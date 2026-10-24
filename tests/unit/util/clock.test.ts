@@ -69,6 +69,11 @@ describe('FakeClock', () => {
 
     clock.setTime(new Date('2026-01-01T00:03:00.000Z').getTime());
     expect(clock.iso()).toBe('2026-01-01T00:03:00.000Z');
+
+    // Setting time backwards preserves monotonic counter
+    clock.setTime('2026-01-01T00:00:30.000Z');
+    expect(clock.iso()).toBe('2026-01-01T00:00:30.000Z');
+    expect(clock.monotonicMs()).toBe(180000);
   });
 
   it('throws when setting an invalid time', () => {

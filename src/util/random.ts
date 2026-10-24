@@ -19,7 +19,8 @@ export class SystemRandom implements Random {
   nextFloat(): number {
     const buffer = new Uint32Array(1);
     getRandomValues(buffer);
-    const value = buffer[0] ?? 0;
+    const view = new DataView(buffer.buffer);
+    const value = view.getUint32(0);
     return value / 0x100000000;
   }
 

@@ -113,4 +113,17 @@ describe('SeededRandom', () => {
     const chosen = rng.choice(items);
     expect(items).toContain(chosen);
   });
+
+  it('uses default seed when none provided', () => {
+    const rng1 = new SeededRandom();
+    const rng2 = new SeededRandom(0);
+    expect(rng1.nextFloat()).toBe(rng2.nextFloat());
+  });
+
+  it('handles shuffle on arrays containing undefined elements', () => {
+    const sysRng = new SystemRandom();
+    const seededRng = new SeededRandom(42);
+    expect(sysRng.shuffle([undefined, undefined])).toHaveLength(2);
+    expect(seededRng.shuffle([undefined, undefined])).toHaveLength(2);
+  });
 });

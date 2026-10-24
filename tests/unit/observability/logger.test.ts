@@ -214,6 +214,53 @@ describe('observability logger module (P1-T06)', () => {
       dispatcher.flush();
       dispatcher.close();
     });
+
+    it('forwards log records to etwProvider and ignores etw exceptions', () => {
+      const logsDir = path.join(tempDir, 'dispatcher-etw-logs');
+      fs.mkdirSync(logsDir, { recursive: true });
+
+      const emittedRecords: unknown[] = [];
+      let shouldThrow = false;
+      const mockEtw = {
+        emitFromLogRecord(record: unknown) {
+          if (shouldThrow) {
+            throw new Error('ETW buffer full');
+          }
+          emittedRecords.push(record);
+        },
+      };
+
+      const dispatcher = new StreamDispatcher(
+        logsDir,
+        {
+          level: 'info',
+          llmPayloads: 'off',
+          maxTotalMb: 10,
+          rotate: { maxSizeMb: 2, keep: 2 },
+        },
+        mockEtw,
+      );
+
+      const record = {
+        v: 1 as const,
+        ts: fakeClock.iso(),
+        level: 'info',
+        stream: 'audit' as const,
+        component: 'security',
+        event: 'audit.test',
+        msg: 'audit message',
+        pid: 1234,
+        host: 'localhost',
+      };
+
+      dispatcher.write(record);
+      expect(emittedRecords).toHaveLength(1);
+
+      shouldThrow = true;
+      expect(() => dispatcher.write(record)).not.toThrow();
+
+      dispatcher.close();
+    });
   });
 
   describe('redaction engine (Rule R4)', () => {
@@ -229,6 +276,11 @@ describe('observability logger module (P1-T06)', () => {
       const b64 = Buffer.from('nvapi-SecretKey1234567890abcdef', 'utf-8').toString('base64');
       const b64Redacted = redactString(`auth=${b64}`);
       expect(b64Redacted).toBe('auth=[REDACTED:nvidia_nim_key]');
+
+      // JSON-escaped secrets with special characters
+      registerSecret('special_key', 'sec"ret\\key');
+      const jsonEscaped = JSON.stringify('sec"ret\\key').slice(1, -1);
+      expect(redactString(`payload=${jsonEscaped}`)).toBe('payload=[REDACTED:special_key]');
     });
 
     it('redacts common API patterns (sk-..., Bearer tokens, private keys)', () => {
@@ -259,10 +311,12 @@ describe('observability logger module (P1-T06)', () => {
     it('redacts errors including stack traces and custom sensitive properties', () => {
       const err = new Error('Database connection failed with credentials');
       (err as unknown as Record<string, unknown>)['secretToken'] = 'hidden-val';
+      (err as unknown as Record<string, unknown>)['safeProperty'] = 'visible-val';
 
       const redacted = redactObject(err) as unknown as Record<string, unknown>;
       expect(redacted['message']).toBe('Database connection failed with credentials');
       expect(redacted['secretToken']).toBe('[REDACTED:secretToken]');
+      expect(redacted['safeProperty']).toBe('visible-val');
     });
   });
 

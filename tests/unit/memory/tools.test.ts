@@ -757,3 +757,92 @@ describe('memory.write policy enforcement via executor', () => {
     expect(entry.title).toBe('Clean Memory');
   });
 });
+
+describe('memory.forget tool', () => {
+  let store: SqliteMemoryStore;
+  let executor: ToolExecutor;
+  let forgetTool: ReturnType<typeof createMemoryForgetTool>;
+
+  beforeEach(() => {
+    ({ store } = makeStore('2026-01-01T00:00:00.000Z'));
+    executor = makeExecutor();
+    forgetTool = createMemoryForgetTool(store);
+  });
+
+  afterEach(() => store.close());
+
+  it('forgets single memory entry by ID', async () => {
+    const entry = await store.write({
+      kind: 'episodic',
+      scope: 'agent',
+      agentId: agentA,
+      title: 'To Forget',
+      content: 'This will be deleted',
+      provenance: { source: 'user', taint: 'clean' },
+    });
+
+    const result = await executor.execute({
+      ...execCtx(),
+      tool: forgetTool,
+      input: { id: entry.id },
+    });
+
+    expect(result.output.deleted).toBe(1);
+    expect(result.output.ids).toEqual([entry.id]);
+
+    const retrieved = await store.get(entry.id);
+    expect(retrieved).toBeNull();
+  });
+
+  it('returns 0 deleted when ID does not exist', async () => {
+    const nonExistentId = '01HAG000000000000000000000';
+    const result = await executor.execute({
+      ...execCtx(),
+      tool: forgetTool,
+      input: { id: nonExistentId },
+    });
+
+    expect(result.output.deleted).toBe(0);
+    expect(result.output.ids).toEqual([]);
+  });
+
+  it('forgets matching entries by filter with agentId, sessionId, and runId', async () => {
+    await store.write({
+      kind: 'episodic',
+      scope: 'session',
+      agentId: agentA,
+      sessionId: sessionA,
+      title: 'Session Item',
+      content: 'Session content',
+      provenance: { source: 'user', taint: 'clean' },
+    });
+
+    const result = await executor.execute({
+      ...execCtx(),
+      tool: forgetTool,
+      input: {
+        filter: {
+          kinds: ['episodic'],
+          scopes: ['session'],
+          agentId: AGENT_A_ULID,
+          sessionId: AGENT_A_ULID,
+          runId: AGENT_A_ULID,
+        },
+      },
+    });
+
+    expect(result.output.deleted).toBeGreaterThanOrEqual(0);
+    expect(result.output.ids).toBeUndefined();
+  });
+
+  it('forgets by empty filter', async () => {
+    const result = await executor.execute({
+      ...execCtx(),
+      tool: forgetTool,
+      input: { filter: {} },
+    });
+
+    expect(result.output.deleted).toBe(0);
+  });
+});
+

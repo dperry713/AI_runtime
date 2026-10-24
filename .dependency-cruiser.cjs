@@ -7,7 +7,7 @@ const layers = {
   config: 1, secrets: 1, observability: 1,
   journal: 2,
   policy: 3, sandbox: 3, providers: 3, memory: 3,
-  tools: 4, mcp: 4,
+  tools: 4, mcp: 4, hooks: 4, plugins: 4, skills: 4,
   agent: 5,
   kernel: 6,
   ipc: 7,

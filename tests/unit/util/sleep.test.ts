@@ -36,6 +36,19 @@ describe('sleep', () => {
     });
   });
 
+  it('aborts mid-sleep with custom Error reason', async () => {
+    const controller = new AbortController();
+    const promise = sleep(500, controller.signal);
+
+    setTimeout(() => {
+      controller.abort(new Error('custom mid-sleep reason'));
+    }, 20);
+
+    await expect(promise).rejects.toSatisfy((err: unknown) => {
+      return isAirError(err) && err.code === 'CANCELLED' && err.cause?.message === 'custom mid-sleep reason';
+    });
+  });
+
   it('accepts SleepOptions object with signal', async () => {
     const controller = new AbortController();
     controller.abort();
@@ -48,5 +61,14 @@ describe('sleep', () => {
     controller.abort(originalErr);
 
     await expect(sleep(50, controller.signal)).rejects.toBe(originalErr);
+  });
+
+  it('handles non-Error abort reason by setting cause to undefined', async () => {
+    const controller = new AbortController();
+    controller.abort('string-reason');
+
+    await expect(sleep(50, controller.signal)).rejects.toSatisfy((err: unknown) => {
+      return isAirError(err) && err.cause === undefined;
+    });
   });
 });

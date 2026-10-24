@@ -26,7 +26,7 @@ export async function dpapiEncrypt(data: Buffer): Promise<Buffer> {
         '-ExecutionPolicy',
         'Bypass',
         '-Command',
-        `[Convert]::ToBase64String([System.Security.Cryptography.ProtectedData]::Protect([System.Convert]::FromBase64String('${base64}'), $null, [System.Security.Cryptography.DataProtectionScope]::CurrentUser))`,
+        `Add-Type -AssemblyName System.Security; [Convert]::ToBase64String([System.Security.Cryptography.ProtectedData]::Protect([System.Convert]::FromBase64String('${base64}'), $null, [System.Security.Cryptography.DataProtectionScope]::CurrentUser))`,
       ],
       { timeout: 10_000 },
         (err: Error | null, stdout: string) => {
@@ -56,7 +56,7 @@ export async function dpapiEncrypt(data: Buffer): Promise<Buffer> {
           '-ExecutionPolicy',
           'Bypass',
           '-Command',
-          `[System.Text.Encoding]::UTF8.GetString([System.Security.Cryptography.ProtectedData]::Unprotect([System.Convert]::FromBase64String('${base64}'), $null, [System.Security.Cryptography.DataProtectionScope]::CurrentUser))`,
+          `Add-Type -AssemblyName System.Security; [System.Text.Encoding]::UTF8.GetString([System.Security.Cryptography.ProtectedData]::Unprotect([System.Convert]::FromBase64String('${base64}'), $null, [System.Security.Cryptography.DataProtectionScope]::CurrentUser))`,
         ],
         { timeout: 10_000 },
         (err: Error | null, stdout: string) => {

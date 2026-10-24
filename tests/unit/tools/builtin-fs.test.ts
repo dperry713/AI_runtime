@@ -95,6 +95,24 @@ describe('Built-in FS Tools (P4-T04)', () => {
         totalBytes: 26,
         isTruncated: true,
       });
+
+      // Offset only (no length)
+      const offsetOnly = await executor.execute({
+        tool: fsReadTool,
+        runId: 'run-000001',
+        input: { path: 'alphabet.txt', offset: 20 },
+        workspaceRoot: rootJail,
+      });
+      expect((offsetOnly.output as { content: string }).content).toBe('UVWXYZ');
+
+      // Length only (no offset)
+      const lengthOnly = await executor.execute({
+        tool: fsReadTool,
+        runId: 'run-000001',
+        input: { path: 'alphabet.txt', length: 3 },
+        workspaceRoot: rootJail,
+      });
+      expect((lengthOnly.output as { content: string }).content).toBe('ABC');
     });
 
     it('supports base64 encoded writing and reading', async () => {
@@ -241,7 +259,7 @@ describe('Built-in FS Tools (P4-T04)', () => {
       const listSimple = await executor.execute({
         tool: fsListTool,
         runId: 'run-000001',
-        input: { path: '.' },
+        input: {},
         workspaceRoot: rootJail,
       });
 
@@ -252,7 +270,7 @@ describe('Built-in FS Tools (P4-T04)', () => {
       const listDetailed = await executor.execute({
         tool: fsListTool,
         runId: 'run-000001',
-        input: { path: '.', detailed: true },
+        input: { detailed: true },
         workspaceRoot: rootJail,
       });
 
@@ -545,6 +563,23 @@ describe('Built-in FS Tools (P4-T04)', () => {
           workspaceRoot: rootJail,
         }),
       ).rejects.toThrowError(AirError);
+    });
+
+    it('evaluates capabilities functions with and without optional path', () => {
+      const listCapsDefault = (fsListTool.capabilities as (args: unknown) => unknown)({});
+      expect(listCapsDefault).toEqual([{ type: 'fs', action: 'list', resource: '.' }]);
+      const listCapsCustom = (fsListTool.capabilities as (args: unknown) => unknown)({ path: 'src' });
+      expect(listCapsCustom).toEqual([{ type: 'fs', action: 'list', resource: 'src' }]);
+
+      const globCapsDefault = (fsGlobTool.capabilities as (args: unknown) => unknown)({ pattern: '*.ts' });
+      expect(globCapsDefault).toEqual([{ type: 'fs', action: 'glob', resource: '.' }]);
+      const globCapsCustom = (fsGlobTool.capabilities as (args: unknown) => unknown)({ pattern: '*.ts', path: 'src' });
+      expect(globCapsCustom).toEqual([{ type: 'fs', action: 'glob', resource: 'src' }]);
+
+      const grepCapsDefault = (fsGrepTool.capabilities as (args: unknown) => unknown)({ query: 'test' });
+      expect(grepCapsDefault).toEqual([{ type: 'fs', action: 'grep', resource: '.' }]);
+      const grepCapsCustom = (fsGrepTool.capabilities as (args: unknown) => unknown)({ query: 'test', path: 'src' });
+      expect(grepCapsCustom).toEqual([{ type: 'fs', action: 'grep', resource: 'src' }]);
     });
   });
 });

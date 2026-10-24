@@ -1,19 +1,19 @@
 # STATUS.md — AIR build status
 
 ## Current Phase
-**P9 — Daemon, IPC, shell** (MEC: LOCKED 2026-10-19)
+**P11 — Multi-agent & scheduling** (MEC: LOCKED 2026-10-19)
 
 ## Phase Health
 | Phase | Status | Tasks Done/Total | Notes |
 |---|---|---|---|
 | P0–P8 | DONE | 71/71 | All exit gates passed |
 | P9 | DONE | 6/7 | P9-T01–T05, P9-T07 DONE; P9-T06 (Optional TUI) DEFERRED |
-| P10 | TODO | 0/4 | Not started |
-| P11 | TODO | 0/5 | Not started |
+| P10 | DONE | 4/4 | P10-T01 (MCP client), P10-T02 (Plugins/Skills), P10-T03 (Hooks), P10-T04 (Mock MCP server) DONE. Exit Gate P10 passed. |
+| P11 | TODO | 0/5 | P11-T01 Supervisor next up |
 | P12 | TODO | 0/7 | Not started |
 
 ## Overall Progress
-77 / 94 tasks done (81.9%)
+81 / 94 tasks done (86.2%)
 
 ## Windows Security Hardening (MEC-WINDOWS-SECURITY.md, LOCKED 2026-10-24)
 | Phase | Name | Status | Requirements |
@@ -30,4 +30,8 @@
 None.
 
 ## Last Verification
-`npm run check` — typecheck PASS, lint PASS, deps:check 1 pre-existing violation (credential-manager.ts → sandbox/index.ts layer violation), npm test: all tests pass (1549 passed, 3 skipped), including 14/14 ETW tests, 7/7 secrets tests, 7/7 WFP tests, 6/6 AppContainer tests.
+`npm run check` — typecheck PASS (0 errors), lint PASS (0 errors), deps:check PASS (0 violations across 158 modules), npm test PASS (97 test files passed, 1669 passed, 3 skipped).
+`npm run test:e2e` — PASS (4 passed).
+`npm run test:security` — PASS (77 passed).
+`npm run test:chaos` — PASS (7 passed).
+`npm run test:coverage` — PASS (Statements 88.38% ≥ 85%, Branches 80.02% ≥ 80%, Functions 90.20% ≥ 85%, Lines 89.35% ≥ 85%). Total: 1753 automated tests passing.

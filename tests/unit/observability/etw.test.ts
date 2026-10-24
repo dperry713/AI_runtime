@@ -139,6 +139,27 @@ describe('EtwProvider', () => {
       expect(() => provider.emitFromLogRecord(record)).not.toThrow();
       provider.close();
     });
+
+    it('maps fatal, warn, and debug levels properly', () => {
+      const provider = new EtwProvider({ enabled: true });
+
+      const base = {
+        v: 1,
+        ts: '2026-10-24T00:00:00.000Z',
+        stream: 'runtime' as const,
+        component: 'sandbox',
+        event: 'sandbox.process_started',
+        msg: 'Msg',
+        pid: 1234,
+        host: 'test-host',
+      };
+
+      expect(() => provider.emitFromLogRecord({ ...base, level: 'fatal' })).not.toThrow();
+      expect(() => provider.emitFromLogRecord({ ...base, level: 'warn' })).not.toThrow();
+      expect(() => provider.emitFromLogRecord({ ...base, level: 'debug' })).not.toThrow();
+      expect(() => provider.emitFromLogRecord({ ...base, level: 'trace' })).not.toThrow();
+      provider.close();
+    });
   });
 
   describe('SSE server', () => {

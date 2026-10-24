@@ -208,10 +208,13 @@ describe('metrics module (P1-T08)', () => {
       }
     });
 
-    it('starts and stops periodic metrics snapshot', () => {
-      const stop = startPeriodicMetricsSnapshot(metricsFile, 100);
+    it('starts and stops periodic metrics snapshot', async () => {
+      const nestedFile = path.join(tempDir, 'sub', 'metrics.jsonl');
+      const stop = startPeriodicMetricsSnapshot(nestedFile, 20);
       expect(typeof stop).toBe('function');
+      await new Promise((resolve) => setTimeout(resolve, 50));
       stop();
+      expect(fs.existsSync(nestedFile)).toBe(true);
     });
 
     it('throws when incrementing counter with negative amount', () => {

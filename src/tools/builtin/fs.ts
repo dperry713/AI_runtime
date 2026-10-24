@@ -253,7 +253,7 @@ export const fsListTool: ToolDefinition<FsListInput, FsListOutput> = defineTool(
   ],
   execute: async (args: FsListInput, ctx: ToolExecutionContext): Promise<FsListOutput> => {
     const root = getWorkspaceRoot(ctx);
-    const subPath = args.path ?? '.';
+    const subPath = args.path;
 
     if (args.detailed) {
       const detailed = await listDetailedIn(root, subPath);
@@ -315,7 +315,7 @@ export const fsGlobTool: ToolDefinition<FsGlobInput, FsGlobOutput> = defineTool(
   ],
   execute: async (args: FsGlobInput, ctx: ToolExecutionContext): Promise<FsGlobOutput> => {
     const root = getWorkspaceRoot(ctx);
-    const matches = await globIn(root, args.pattern, args.path ?? '.', args.maxResults);
+    const matches = await globIn(root, args.pattern, args.path, args.maxResults);
 
     return {
       pattern: args.pattern,
@@ -365,7 +365,7 @@ export const fsGrepTool: ToolDefinition<FsGrepInput, FsGrepOutput> = defineTool(
   ],
   execute: async (args: FsGrepInput, ctx: ToolExecutionContext): Promise<FsGrepOutput> => {
     const root = getWorkspaceRoot(ctx);
-    const matches = await grepIn(root, args.query, args.path ?? '.', {
+    const matches = await grepIn(root, args.query, args.path, {
       isRegex: args.isRegex,
       caseInsensitive: args.caseInsensitive,
       maxMatches: args.maxMatches,

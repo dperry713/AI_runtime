@@ -109,6 +109,33 @@ describe('AppContainerRunner', () => {
     expect(result.message).toBe('Access successfully granted');
   });
 
+  it('deleteProfile throws on error response', async () => {
+    const runner = new AppContainerRunner({
+      mockHandler: makeMockHandler([
+        { type: 'error', version: 1, message: 'Delete failed' },
+      ]),
+    });
+    await expect(runner.deleteProfile('test')).rejects.toThrow(AirError);
+  });
+
+  it('grantAccessToPath throws on error response', async () => {
+    const runner = new AppContainerRunner({
+      mockHandler: makeMockHandler([
+        { type: 'error', version: 1, message: 'ACL failed' },
+      ]),
+    });
+    await expect(runner.grantAccessToPath('S-1-15-2-123', 'C:\\jail')).rejects.toThrow(AirError);
+  });
+
+  it('createProfile throws on unexpected response type', async () => {
+    const runner = new AppContainerRunner({
+      mockHandler: makeMockHandler([
+        { type: 'ac_profile_deleted', version: 1, success: true },
+      ]),
+    });
+    await expect(runner.createProfile({ name: 'test' })).rejects.toThrow(AirError);
+  });
+
   it('run falls back to StandardProcessRunner when AppContainer unavailable', async () => {
     const fallbackRun = vi.fn().mockResolvedValue({
       exitCode: 0,
@@ -140,9 +167,11 @@ describe('AppContainerRunner', () => {
     expect(fallbackRun).toHaveBeenCalledTimes(1);
   });
 
-  it('listProfiles returns empty array initially', () => {
+  it('listProfiles returns empty array initially, and tracks active processes', async () => {
     const runner = new AppContainerRunner();
     const profiles: readonly AppContainerProfile[] = runner.listProfiles();
     expect(profiles).toEqual([]);
+    expect(runner.getActiveProcesses()).toEqual([]);
+    await expect(runner.killAll()).resolves.not.toThrow();
   });
 });

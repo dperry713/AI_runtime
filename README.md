@@ -6,10 +6,10 @@
 
 [![Node](https://img.shields.io/badge/Node.js-22_LTS-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x_strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Tests](https://img.shields.io/badge/Tests-1511+_passing-22c55e?style=for-the-badge)](#)
+[![Tests](https://img.shields.io/badge/Tests-1690+_passing-22c55e?style=for-the-badge)](#)
 [![Coverage](https://img.shields.io/badge/Coverage-≥85%_gated-0ea5e9?style=for-the-badge)](#)
 [![Platform](https://img.shields.io/badge/Platform-Windows_10%2F11-0078D4?style=for-the-badge&logo=windows&logoColor=white)](#)
-[![Status](https://img.shields.io/badge/Status-Phase_9_~82%25-f59e0b?style=for-the-badge)](#status)
+[![Status](https://img.shields.io/badge/Status-Phase_11_~86%25-f59e0b?style=for-the-badge)](#status)
 
 <br/>
 
@@ -70,7 +70,7 @@ It sits between “an LLM API” and “something you can actually trust to run 
 - Streaming tool-call assembly
 - Budgets (tokens, USD, steps, wall-clock)
 - Stall / loop detection
-- Sub-agent supervisor with inherited budgets
+- Sub-agent supervisor with inherited budgets (Planned — Phase 11)
 
 </td>
 <td width="50%">
@@ -189,11 +189,11 @@ flowchart TB
 
 | Item | Value |
 |------|-------|
-| **Current Phase** | P9 — Daemon, IPC, Shell |
-| **Overall Progress** | **77 / 94 tasks** (~82%) |
-| **Last `npm run check`** | PASS (typecheck + lint + deps + 1511 tests) |
+| **Current Phase** | P11 — Multi-agent & scheduling |
+| **Overall Progress** | **81 / 94 tasks** (~86%) |
+| **Last `npm run check`** | PASS (typecheck + lint + deps + 1691 tests) |
 | **Coverage Gates** | Enforced (≥85% global, higher on critical modules) |
-| **Next Up** | MCP client (P10-T01) |
+| **Next Up** | Supervisor (P11-T01) |
 
 <details>
 <summary><strong>Phase Progress Overview</strong></summary>
@@ -209,9 +209,10 @@ flowchart TB
 | P6 | Agent loop (turn engine) | ✅ Complete |
 | P7 | Sandbox & Windows isolation | ✅ Complete |
 | P8 | Memory | ✅ Complete |
-| P9 | Daemon, IPC, shell | 🟡 Nearly complete |
-| P10 | MCP client | ⬜ Next |
-| P11–P12 | Packaging, polish, service | ⬜ Upcoming |
+| P9 | Daemon, IPC, shell | ✅ Complete (TUI deferred) |
+| P10 | Extensibility (MCP client, plugins, skills, hooks) | ✅ Complete |
+| P11 | Multi-agent & scheduling | 🟡 Next |
+| P12 | Hardening, packaging, release | ⬜ Upcoming |
 
 </details>
 

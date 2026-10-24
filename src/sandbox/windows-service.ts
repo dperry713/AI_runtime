@@ -38,6 +38,8 @@ export interface ServiceInstallOptions {
   readonly restartDelayMs?: number | undefined;
   /** Logger instance. */
   readonly logger?: ComponentLogger | undefined;
+  /** Optional sc runner for testing (bypasses spawning sc.exe). */
+  readonly scRunner?: ((args: readonly string[]) => Promise<{ success: boolean; message: string }>) | undefined;
 }
 
 export interface ServiceStatus {
@@ -65,6 +67,7 @@ export class WindowsService {
   private readonly failureAction: string;
   private readonly restartDelayMs: number;
   private readonly logger: ComponentLogger;
+  private readonly scRunner?: ((args: readonly string[]) => Promise<{ success: boolean; message: string }>) | undefined;
 
   constructor(options: ServiceInstallOptions = {}) {
     this.exePath = options.exePath ?? process.execPath;
@@ -74,6 +77,7 @@ export class WindowsService {
     this.failureAction = options.failureAction ?? 'restart';
     this.restartDelayMs = options.restartDelayMs ?? 30_000;
     this.logger = options.logger ?? defaultLogger;
+    this.scRunner = options.scRunner;
   }
 
   /**
@@ -305,6 +309,9 @@ export class WindowsService {
    * Runs an `sc.exe` command and returns the result.
    */
   private async runSc(args: readonly string[]): Promise<{ success: boolean; message: string }> {
+    if (this.scRunner) {
+      return this.scRunner(args);
+    }
     return new Promise<{ success: boolean; message: string }>((resolve) => {
       const child = spawn('sc.exe', args, {
         windowsHide: true,

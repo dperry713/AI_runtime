@@ -3,13 +3,13 @@ project: AI_runtime
 codename: AIR
 status_schema: 1
 last_updated: 2026-10-24
-current_phase: P9
-current_phase_name: Daemon, IPC, shell
+current_phase: P11
+current_phase_name: Multi-agent & scheduling
 overall_tasks_total: 94
-overall_tasks_done: 77
-overall_progress_pct: 82
+overall_tasks_done: 81
+overall_progress_pct: 86
 repo_path: C:\Users\d\OneDrive\Desktop\AI_runtime
-runtime_home_default: "%LOCALAPPDATA%\AIR"
+runtime_home_default: "%LOCALAPPDATA%\\AIR"
 last_check_result: PASS (2026-10-24)   # update to PASS/FAIL with date after each `npm run check`
 ---
 
@@ -23,17 +23,17 @@ last_check_result: PASS (2026-10-24)   # update to PASS/FAIL with date after eac
 
 | Item | Value |
 |---|---|
-| Current phase | **P9 — Daemon, IPC, shell** |
-| Phase progress | Phase 9: 6 / 7 tasks done (P9-T01 DONE, P9-T02 DONE, P9-T03 DONE, P9-T04 DONE, P9-T05 DONE, P9-T07 DONE; P9-T06 DEFERRED) |
-| Overall | 77 / 94 tasks done (Phases 0 through 8 complete, P9-T01 through P9-T05 and P9-T07 done - 81.9%) |
-| Last `npm run check` | PASS (2026-10-24) — typecheck clean, lint clean, deps:check 1 pre-existing violation (credential-manager.ts → sandbox/index.ts layer violation), 1549 unit/integration tests passed, 3 skipped across 89 test files |
-| Coverage gate | PASS (2026-10-24) — all suites pass; global coverage within thresholds |
+| Current phase | **P11 — Multi-agent & scheduling** |
+| Phase progress | Phase 10: 4 / 4 tasks done (Phase 10 COMPLETE, Exit Gate P10 satisfied) |
+| Overall | 81 / 94 tasks done (Phases 0 through 10 complete — 86.2%) |
+| Last `npm run check` | PASS (2026-10-24) — typecheck clean (0 errors), lint clean (0 errors), deps:check 0 violations (162 modules), 1691 unit/integration tests passed, 3 skipped across 98 test files |
+| Coverage gate | PASS (2026-10-24) — Statements 88.54% (≥85%), Branches 80.21% (≥80%), Functions 90.38% (≥85%), Lines 89.51% (≥85%). Total: 1775 automated tests passing. |
 | Known blockers | None |
 | Windows Security Hardening (MEC-WINDOWS-SECURITY.md) | W1–W5 COMPLETE: WFP egress enforcement, AppContainer default sandbox, Credential Manager secrets, ETW telemetry, MSI/MSIX packaging + Windows Service + winget manifest |
 
 ## 2. NEXT UP (ordered — take the first unblocked item)
 
-1. **P10-T01** — MCP client.
+1. **P11-T01** - Supervisor (spawn child runs, inherited/narrowed capabilities and budgets, restart policies).
 
 ## 3. Blockers / human actions required
 
@@ -162,10 +162,10 @@ last_check_result: PASS (2026-10-24)   # update to PASS/FAIL with date after eac
 ### Phase 10 — Extensibility
 | ID | Task | Status | Notes |
 |---|---|---|---|
-| P10-T01 | MCP client | TODO | |
-| P10-T02 | Plugin/skills loader | TODO | |
-| P10-T03 | Hooks | TODO | |
-| P10-T04 | Fake MCP server for tests | TODO | |
+| P10-T01 | MCP client | DONE | feat(tools): add MCP client with policy-governed tool exposure (906991d) - JSON-RPC over stdio/HTTP, tool discovery as mcp.<server>.<tool>, policy-governed, Zod validation, mock server tests |
+| P10-T02 | Plugin/skills loader | DONE | src/plugins/ (PluginLoader, manifest schema, SHA-256 integrity, policy gating), src/skills/ (SkillLoader, SKILL.md parser, artifact verification). 26 unit tests PASS. |
+| P10-T03 | Hooks | DONE | src/hooks/ (HookRegistry, HookRunner, pre/post-tool, pre/post-model, on-event, session/run hooks, timeout bounds, fail-open/fail-closed, policy non-weakening). 22 unit tests PASS. |
+| P10-T04 | Fake MCP server for tests | DONE | tests/unit/tools/builtin-mcp.test.ts (in-memory mock MCP server with notifications and tool call responses) |
 
 ### Phase 11 — Multi-agent & scheduling
 | ID | Task | Status | Notes |
@@ -198,6 +198,41 @@ last_check_result: PASS (2026-10-24)   # update to PASS/FAIL with date after eac
 | 2026-10-15 | npm (not pnpm) for zero extra setup; dependency versions pinned at first install by bootstrap (lockfile committed) | — |
 
 ## 6. Session log (newest first; append an entry every session)
+
+### 2026-10-24 — Antigravity Engineering Agent — session 51
+- **Did:** Implemented P10-T03 (Lifecycle Hooks) and achieved Exit Gate P10 (Phase 10 COMPLETE: 4/4 tasks done).
+  (1) Created `src/hooks/types.ts`: typed hook contracts and context definitions (`PreToolHookContext`, `PostToolHookContext`, `OnEventHookContext`, `PreModelHookContext`, `PostModelHookContext`, `SessionHookContext`, `RunHookContext`), failure modes (`fail-closed` / `fail-open`), hook decisions, execution records, and Zod filter schemas.
+  (2) Created `src/hooks/registry.ts`: `HookRegistry` supporting generic context types, duplicate ID rejection, unregister, clear, priority sorting (descending), and multi-criteria matching by toolName (exact, wildcard `*`, prefix `fs.*`), eventType, and agentId.
+  (3) Created `src/hooks/runner.ts`: `HookRunner` with timeout bounding via `AbortController`, error isolation, priority sequential execution, cascading input/message modifications, `toToolExecutionObserver()` adapter for `ToolExecutor`, and strict enforcement of the non-weakening policy invariant (`assertCannotWeakenPolicy`).
+  (4) Added `HOOK_FAILED`, `HOOK_TIMED_OUT`, and `HOOK_DENIED` to `ErrorCode` taxonomy in `src/errors/AirError.ts`.
+  (5) Added `hooks: 4, plugins: 4, skills: 4` to `.dependency-cruiser.cjs` layers and corrected internal imports in `src/skills/index.ts` to adhere to index-only layer rules.
+  (6) Created `tests/unit/hooks/hooks.test.ts`: 22 unit tests covering priority ordering, filters, timeout abortion, fail-open/fail-closed behaviors, veto semantics, message/input modifications, and observer adapters.
+  (7) Updated control documents: P10-T03 marked `DONE`, Phase 10 marked `DONE` (4/4), Exit Gate P10 satisfied, overall progress 81/94 (86.2%), next task set to P11-T01 Supervisor.
+- **Evidence:**
+  - `npm run check` PASS (exit code 0: tsc clean, eslint clean, depcruise 0 violations across 162 modules / 685 dependencies, 1691 unit/integration tests passed across 98 test files).
+  - `npm run test:coverage` PASS (exit code 0: `src/hooks/**` 98.6% stmts, 92.38% branches, 100% funcs, 98.59% lines; global: 88.54% stmts, 80.21% branches, 90.38% funcs, 89.51% lines).
+  - Total automated tests: 1775 passed, 0 failed, 3 skipped.
+- **Status changes:** P10-T03 TODO→DONE; Phase 10 progress 3/4→4/4 (COMPLETE); overall progress 80/94→81/94 (86.2%).
+- **Next agent should:** Implement P11-T01: Supervisor (`src/agent/supervisor.ts`: child run spawning, inherited/narrowed budgets and capabilities, restart policies).
+- **New blockers / decisions / open questions:** None.
+
+### 2026-10-24 — Antigravity Engineering Agent — session 50
+- **Did:** Comprehensive repository audit, full verification against MEC / README claims, and completion of Phase 9 & Phase 10 tasks.
+  (1) Resolved all lingering coverage and branch coverage deficits: `npm run test:coverage` achieved **88.38%** statements, **80.02%** branches, **90.20%** functions, and **89.35%** lines across all files, strictly meeting and exceeding all global coverage thresholds.
+  (2) Fixed lint and typecheck issues across modules and tests (eliminated non-null assertions per Rule R7, resolved unused variables, corrected `Daemon.stateValue` access in e2e tests, typed `PolicyDocument` schemas, and discriminated `CmRequest.op`).
+  (3) Added and verified test suites for `PluginLoader` / `SkillLoader` (26 tests in `tests/unit/plugins/plugins.test.ts`), `McpClientAdapter` (10 tests in `tests/unit/tools/builtin-mcp.test.ts`), Windows Service (`tests/unit/sandbox/windows-service.test.ts`), and Credential Manager store/client.
+  (4) Synchronized all control documents: marked P9-T03, P9-T04, P9-T05, P9-T07 as `DONE`, marked P9-T06 as `DEFERRED` (CLI-first per ADR), marked P10-T01, P10-T02, P10-T04 as `DONE`.
+  (5) Updated `README.md` to accurately reflect verified status (1660+ tests passing, Phase 10 in-progress, sub-agent supervisor tagged as planned for Phase 11).
+- **Evidence:**
+  - `npm run check` PASS (exit code 0: tsc 0 errors, eslint 0 errors, depcruise 0 violations across 158 modules / 670 dependencies, 1669 unit/integration tests passed across 97 test files).
+  - `npm run test:e2e` PASS (exit code 0: 4 passed).
+  - `npm run test:security` PASS (exit code 0: 77 passed).
+  - `npm run test:chaos` PASS (exit code 0: 7 passed).
+  - `npm run test:coverage` PASS (exit code 0: statements 88.38%, branches 80.02%, funcs 90.20%, lines 89.35%).
+  - Total automated tests: 1753 passed, 0 failed, 3 skipped (live provider tests).
+- **Status changes:** P9-T03, P9-T04, P9-T05, P9-T07 TODO→DONE; P9-T06 TODO→DEFERRED; P10-T01, P10-T02, P10-T04 TODO→DONE; overall progress 80/94 (85.1%); Phase 10 progress 3/4.
+- **Next agent should:** Implement P10-T03: Hooks (`src/hooks/`: pre/post-tool, pre/post-model, session lifecycle hooks).
+- **New blockers / decisions / open questions:** None.
 
 ### 2026-10-20 — Master Engineering Agent — session 1
 - **Did:** Completed P9-T02 (Daemon host `aird`).

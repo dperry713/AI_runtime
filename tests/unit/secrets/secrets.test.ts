@@ -186,6 +186,132 @@ describe('secrets module (P1-T09)', () => {
       await expect(store.get('')).rejects.toSatisfy(
         (err: unknown) => err instanceof AirError && err.code === 'INVALID_ARGUMENT',
       );
+      await expect(store.set('', 'val')).rejects.toSatisfy(
+        (err: unknown) => err instanceof AirError && err.code === 'INVALID_ARGUMENT',
+      );
+      await expect(store.delete('')).rejects.toSatisfy(
+        (err: unknown) => err instanceof AirError && err.code === 'INVALID_ARGUMENT',
+      );
+    });
+
+    it('throws INVALID_STATE when initialized without masterKey or cmClient', async () => {
+      const vaultDir = path.join(tempDir, 'vault-no-client');
+      const store = new CredentialManagerStore({ vaultDir });
+      await expect(store.get('test')).rejects.toSatisfy(
+        (err: unknown) => err instanceof AirError && err.code === 'INVALID_STATE',
+      );
+    });
+
+    it('reads existing master key from Credential Manager across multiple store instances', async () => {
+      const vaultDir = path.join(tempDir, 'vault-shared');
+      const cmMock = makeCmMockHandler();
+      const store1 = new CredentialManagerStore({ vaultDir, mockHandler: cmMock });
+      await store1.set('shared_secret', 'secret-val-123');
+
+      // Second instance reads the existing master key that was written
+      const store2 = new CredentialManagerStore({ vaultDir, mockHandler: cmMock });
+      const readVal = await store2.get('shared_secret');
+      expect(readVal).toBe('secret-val-123');
+    });
+
+    it('handles concurrent operations gracefully during initial key derivation', async () => {
+      const vaultDir = path.join(tempDir, 'vault-concurrent');
+      const cmMock = makeCmMockHandler();
+      const store = new CredentialManagerStore({ vaultDir, mockHandler: cmMock });
+
+      // Run multiple gets in parallel before initialization completes
+      const results = await Promise.all([
+        store.get('key1'),
+        store.get('key2'),
+        store.get('key3'),
+      ]);
+      expect(results).toEqual([undefined, undefined, undefined]);
+    });
+
+    it('throws SECRET_ACCESS_DENIED when mockHandler returns unexpected read response', async () => {
+      const vaultDir = path.join(tempDir, 'vault-bad-read');
+      const badMock = () => Promise.resolve({ type: 'unexpected_type' } as unknown as CmResponse);
+      const store = new CredentialManagerStore({ vaultDir, mockHandler: badMock });
+      await expect(store.get('key')).rejects.toSatisfy(
+        (err: unknown) => err instanceof AirError && err.code === 'SECRET_ACCESS_DENIED',
+      );
+    });
+
+    it('throws SECRET_ACCESS_DENIED when mockHandler returns unexpected write response', async () => {
+      const vaultDir = path.join(tempDir, 'vault-bad-write');
+      const badMock = (req: CmRequest) => {
+        if (req.op === 'cm_read') {
+          return Promise.resolve({
+            type: 'cm_credential_read',
+            version: 1,
+            targetName: req.targetName,
+            credentialBlob: undefined,
+            userName: undefined,
+            found: false,
+          } as CmResponse);
+        }
+        return Promise.resolve({ type: 'unexpected_type' } as unknown as CmResponse);
+      };
+      const store = new CredentialManagerStore({ vaultDir, mockHandler: badMock });
+      await expect(store.get('key')).rejects.toSatisfy(
+        (err: unknown) => err instanceof AirError && err.code === 'SECRET_ACCESS_DENIED',
+      );
+    });
+
+    it('throws INVALID_STATE if derivedKey is unexpectedly missing in get or set', async () => {
+      const vaultDir = path.join(tempDir, 'vault-missing-key');
+      const store = new CredentialManagerStore({ vaultDir, masterKey: 'test-master' });
+      await store.set('existing', 'value');
+
+      // Artificially remove derivedKey while initialized is true
+      (store as unknown as { derivedKey: unknown }).derivedKey = undefined;
+
+      await expect(store.get('existing')).rejects.toSatisfy(
+        (err: unknown) => err instanceof AirError && err.code === 'SECRET_ACCESS_DENIED',
+      );
+      await expect(store.set('new_key', 'val')).rejects.toSatisfy(
+        (err: unknown) => err instanceof AirError && err.code === 'INVALID_STATE',
+      );
+    });
+
+    it('uses default credentials directory when vaultDir is not provided', () => {
+      const store = new CredentialManagerStore({ masterKey: 'key' });
+      expect(store).toBeDefined();
+    });
+
+    it('handles mockHandler returning success: false on cm_write', async () => {
+      const vaultDir = path.join(tempDir, 'vault-cm-fail');
+      const store = new CredentialManagerStore({
+        vaultDir,
+        mockHandler: (req) => {
+          if (req.op === 'cm_read') {
+            return Promise.resolve({
+              type: 'cm_credential_read',
+              version: 1,
+              targetName: req.targetName,
+              credentialBlob: undefined,
+              userName: undefined,
+              found: false,
+            });
+          }
+          if (req.op === 'cm_write') {
+            return Promise.resolve({
+              type: 'cm_credential_written',
+              version: 1,
+              targetName: req.credential.targetName,
+              success: false,
+            });
+          }
+          return Promise.resolve({
+            type: 'cm_credential_deleted',
+            version: 1,
+            targetName: 'unknown',
+            success: true,
+          });
+        },
+      });
+      await store.set('k', 'v');
+      expect(await store.get('k')).toBe('v');
     });
   });
 

@@ -273,3 +273,59 @@
 - `npm test` — PASS (78 test files, 1449 tests passed, 3 skipped)
 
 **Result:** All P9-T01 exit gate criteria met. IPC module is fully implemented and tested.
+
+---
+
+## P10-T01: MCP client adapter (DONE 2026-10-24)
+
+**Requirements covered:** R-001, R-002, R-003, R-004
+
+**Files created:**
+- `src/tools/builtin/mcp.ts` — `McpClientAdapter` supporting stdio / SSE transport, tool discovery, schema translation into AIR `ToolDefinition`, and execution delegation
+- `tests/unit/tools/builtin-mcp.test.ts` — 10 unit tests covering stdio MCP lifecycle, ping, tool discovery, execution, error mapping, and notifications
+
+**Commands run:**
+- `npx vitest run tests/unit/tools/builtin-mcp.test.ts` — PASS (10/10 tests)
+- `npm run check` — PASS
+
+**Result:** MCP client module is fully functional, typechecked, and verified against mocked and synthetic MCP endpoints.
+
+---
+
+## P10-T02: Plugin & Skill Loader (DONE 2026-10-24)
+
+**Requirements covered:** R-005, R-006, R-007
+
+**Files created:**
+- `src/plugins/manifest.ts` — Plugin manifest parsing, JSON/YAML support, Zod validation, SHA-256 integrity calculation
+- `src/plugins/loader.ts` — `PluginLoader` with filesystem discovery, integrity verification, and PolicyEngine gating
+- `src/skills/index.ts` — `SkillLoader` with SKILL.md frontmatter parsing and artifact verification
+- `tests/unit/plugins/plugins.test.ts` — 26 unit tests covering manifest parsing, SHA-256 validation, policy gating, fail-closed handling, directory scanning, and capability mapping
+
+**Commands run:**
+- `npm run check` — PASS (exit code 0, 97 test files passed, 1669 passed, 3 skipped)
+- `npm run test:coverage` — PASS (Statements 88.38%, Branches 80.02%, Functions 90.20%, Lines 89.35%)
+
+**Result:** Plugin and skills loading subsystems are fully implemented, verified, and gated by the policy engine.
+
+---
+
+## P10-T03: Lifecycle Hooks (DONE 2026-10-24)
+
+**Requirements covered:** R-008, R-009, R-010
+
+**Files created:**
+- `src/hooks/types.ts` — Hook contracts, context types (`pre-tool`, `post-tool`, `on-event`, `pre-model`, `post-model`, `session-start/end`, `run-start/end`), failure mode (`fail-closed` / `fail-open`), filtering, and hook decisions
+- `src/hooks/registry.ts` — `HookRegistry` with priority ordering, conflict prevention, and multi-criteria matching
+- `src/hooks/runner.ts` — `HookRunner` with timeout bounds via `AbortController`, error isolation, input modification, and `assertCannotWeakenPolicy` invariant enforcement
+- `src/hooks/index.ts` — Public API exports and `createHookRunner` factory
+- `tests/unit/hooks/hooks.test.ts` — 22 unit tests covering priority ordering, filters, timeout abortion, fail-open/fail-closed behaviors, veto semantics, message/input modifications, and observer adapters
+
+**Commands run:**
+- `npx vitest run tests/unit/hooks/hooks.test.ts` — PASS (22/22 tests passed in 172ms)
+- `npm run check` — PASS (exit code 0, 98 test files passed, 1691 passed, 3 skipped)
+- `npm run test:coverage` — PASS (`src/hooks/**`: 98.6% stmts, 92.38% branches, 100% funcs, 98.59% lines; global: 88.54% stmts, 80.21% branches, 90.38% funcs, 89.51% lines)
+
+**Result:** All P10-T03 criteria met. Phase 10 is 100% complete (Exit Gate P10 satisfied).
+
+
