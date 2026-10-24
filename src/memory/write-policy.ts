@@ -578,7 +578,9 @@ export class MemoryWritePolicy {
         context?.source === 'tool',
     );
 
-    if (this.config.preserveTaint && contextIsTainted) {
+    // Tool source always forces taint escalation (no taint laundering via tool output),
+    // regardless of the preserveTaint flag. Other tainted contexts require preserveTaint.
+    if (contextIsTainted && (this.config.preserveTaint || context?.source === 'tool')) {
       const minTaint: MemoryTaint = context?.taintLevel === 'untrusted' ? 'untrusted' : 'tainted';
       if (enforcedTaint === 'clean') {
         enforcedTaint = minTaint;
@@ -652,7 +654,7 @@ export class MemoryWritePolicy {
   assertAllowed(input: CreateMemoryInput, context?: MemoryWriteContext): CreateMemoryInput {
     const result = this.evaluate(input, context);
     if (!result.allowed) {
-      throw new AirError('POLICY_DENIED', `Memory write rejected by policy: ${result.reason}`, {
+      throw new AirError('POLICY_DENIED', `[POLICY_DENIED] Memory write rejected by policy: ${result.reason}`, {
         exposeToModel: true,
         context: {
           violations: result.violations as unknown as Record<string, unknown>,
@@ -687,7 +689,7 @@ export class MemoryWritePolicy {
     }
 
     if (errors.length > 0) {
-      throw new AirError('POLICY_DENIED', `Memory batch write rejected by policy: ${errors.join('; ')}`, {
+      throw new AirError('POLICY_DENIED', `[POLICY_DENIED] Memory batch write rejected by policy: ${errors.join('; ')}`, {
         exposeToModel: true,
         context: {
           errorCount: errors.length,

@@ -1,9 +1,20 @@
 mod job;
 mod protocol;
 mod token;
+mod wfp;
+mod appcontainer;
+mod cred;
 
 use job::JobObject;
 use protocol::{LaunchRequest, LaunchResponse, PROTOCOL_VERSION};
+use wfp::{handle_wfp_add_filter, handle_wfp_list_filters, handle_wfp_remove_filter};
+use appcontainer::{
+    handle_ac_create_profile, handle_ac_delete_profile, handle_ac_grant_access,
+    handle_ac_list_profiles,
+};
+use cred::{
+    handle_cm_delete, handle_cm_list, handle_cm_read, handle_cm_write,
+};
 use std::ffi::OsStr;
 use std::io::{self, BufRead, Write};
 use std::os::windows::ffi::OsStrExt;
@@ -95,6 +106,113 @@ fn run_helper() -> Result<(), Box<dyn std::error::Error>> {
                 request.version, PROTOCOL_VERSION
             ),
         );
+        return Ok(());
+    }
+
+    // WFP operations take precedence over process launching.
+    if request.wfp_list_filters == Some(true) {
+        match handle_wfp_list_filters(request.version) {
+            Ok(resp) => emit_response(&resp),
+            Err(err) => emit_error("WFP_LIST_FAILED", &err.to_string()),
+        }
+        return Ok(());
+    }
+
+    if let Some(filter_id) = request.wfp_remove_filter_id {
+        match handle_wfp_remove_filter(filter_id, request.version) {
+            Ok(resp) => emit_response(&resp),
+            Err(err) => emit_error("WFP_REMOVE_FAILED", &err.to_string()),
+        }
+        return Ok(());
+    }
+
+    if let Some(filter_spec) = &request.wfp_add_filter {
+        let wfp_request = protocol::WfpAddFilterRequest {
+            version: request.version,
+            filter: filter_spec.clone(),
+        };
+        match handle_wfp_add_filter(&wfp_request) {
+            Ok(resp) => emit_response(&resp),
+            Err(err) => emit_error("WFP_ADD_FAILED", &err.to_string()),
+        }
+        return Ok(());
+    }
+
+    // AppContainer operations take precedence over process launching.
+    if request.ac_list_profiles == Some(true) {
+        match handle_ac_list_profiles(&protocol::AppContainerListProfilesRequest {
+            version: request.version,
+        }) {
+            Ok(resp) => emit_response(&resp),
+            Err(err) => emit_error("AC_LIST_FAILED", &err),
+        }
+        return Ok(());
+    }
+
+    if let Some(create_req) = &request.ac_create_profile {
+        match handle_ac_create_profile(create_req) {
+            Ok(resp) => emit_response(&resp),
+            Err(err) => emit_error("AC_CREATE_FAILED", &err),
+        }
+        return Ok(());
+    }
+
+    if let Some(delete_req) = &request.ac_delete_profile {
+        match handle_ac_delete_profile(delete_req) {
+            Ok(resp) => emit_response(&resp),
+            Err(err) => emit_error("AC_DELETE_FAILED", &err),
+        }
+        return Ok(());
+    }
+
+    if let Some(grant_req) = &request.ac_grant_access {
+        match handle_ac_grant_access(grant_req) {
+            Ok(resp) => emit_response(&resp),
+            Err(err) => emit_error("AC_GRANT_FAILED", &err),
+        }
+        return Ok(());
+    }
+
+    if let Some(_launch_req) = &request.ac_launch {
+        // AppContainer process launching is handled from the TypeScript layer
+        // using the profile SID for WFP filtering and ACLs.
+        emit_error(
+            "AC_LAUNCH_NOT_SUPPORTED",
+            "AppContainer process launching is handled by the TypeScript layer; use ac_create_profile and ac_grant_access instead",
+        );
+        return Ok(());
+    }
+
+    // Credential Manager operations.
+    if let Some(write_req) = &request.cm_write {
+        match handle_cm_write(write_req) {
+            Ok(resp) => emit_response(&resp),
+            Err(err) => emit_error("CM_WRITE_FAILED", &err.to_string()),
+        }
+        return Ok(());
+    }
+
+    if let Some(read_req) = &request.cm_read {
+        match handle_cm_read(read_req) {
+            Ok(resp) => emit_response(&resp),
+            Err(err) => emit_error("CM_READ_FAILED", &err.to_string()),
+        }
+        return Ok(());
+    }
+
+    if let Some(delete_req) = &request.cm_delete {
+        match handle_cm_delete(delete_req) {
+            Ok(resp) => emit_response(&resp),
+            Err(err) => emit_error("CM_DELETE_FAILED", &err.to_string()),
+        }
+        return Ok(());
+    }
+
+    if let Some(list_req) = &request.cm_list {
+        match handle_cm_list(list_req) {
+            Ok(resp) => emit_response(&resp),
+            Err(err) => emit_error("CM_LIST_FAILED", &err.to_string()),
+        }
         return Ok(());
     }
 

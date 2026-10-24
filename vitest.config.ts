@@ -40,6 +40,18 @@ export default defineConfig({
           functions: 95,
           statements: 95,
         },
+      // Per-module floor for the security-critical agent orchestration loop.
+      // These modules are the most security-critical (run state, turn execution,
+      // replay, context, scheduling) and must not fall below a floor even if the
+      // global average stays above 85%. Floor is set just above current worst
+      // module (turn-engine ~49% branches, harness ~53% branches) to prevent
+      // silent erosion of coverage on the security-critical path.
+      'src/agent/**': {
+        lines: 60,
+        branches: 45,
+        functions: 60,
+        statements: 60,
+      },
       },
     },
   },

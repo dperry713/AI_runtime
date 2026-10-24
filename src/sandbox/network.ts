@@ -30,6 +30,8 @@ import { AirError } from '../errors/index.js';
 import { getLogger, type ComponentLogger } from '../observability/index.js';
 import { parseIpv4ToUint32, isPrivateOrReservedIpv4 } from '../util/index.js';
 import { type Clock, SystemClock } from '../util/index.js';
+import { WfpClient, createDefaultDenyFilter, createAllowFilter } from './wfp.js';
+import { CredentialManagerClient } from './credential-manager-client.js';
 
 const defaultLogger = getLogger('egress-proxy');
 
@@ -67,6 +69,22 @@ export interface EgressProxyOptions {
   readonly onEvent?: ((event: EgressLogEvent) => void) | undefined;
   /** Optional logger instance. */
   readonly logger?: ComponentLogger | undefined;
+  /** Credential injection rules for allowlisted hosts. Secrets are retrieved from
+   *  Windows Credential Manager and injected into outbound requests so they never
+   *  enter the agent or tool process in plaintext. */
+  readonly credentialInjection?: readonly CredentialInjectionRule[] | undefined;
+}
+
+/** Rule for injecting credentials into outbound requests to a specific host. */
+export interface CredentialInjectionRule {
+  /** Host pattern to match (e.g. 'api.github.com', '*.anthropic.com'). */
+  readonly hostPattern: string;
+  /** Credential Manager target name for the secret. */
+  readonly credentialTarget: string;
+  /** Header name to inject (e.g. 'Authorization'). */
+  readonly headerName: string;
+  /** Header value prefix (e.g. 'Bearer '). */
+  readonly headerPrefix?: string | undefined;
 }
 
 // ============================================================================
@@ -299,6 +317,8 @@ export class EgressProxy {
   private readonly options: EgressProxyOptions;
   private readonly logger: ComponentLogger;
   private readonly clock: Clock;
+  private readonly credentialManager: CredentialManagerClient;
+  private readonly credentialCache = new Map<string, { value: string; expiry: number }>();
   private listeningPort = 0;
 
   constructor(options: EgressProxyOptions = {}, clock?: Clock) {
@@ -310,6 +330,7 @@ export class EgressProxy {
     };
     this.logger = options.logger ?? defaultLogger;
     this.clock = clock ?? new SystemClock();
+    this.credentialManager = new CredentialManagerClient();
   }
 
   /**
@@ -444,6 +465,51 @@ export class EgressProxy {
       return;
     }
 
+    // Credential injection: inject credentials from Windows Credential Manager
+    // into outbound requests to allowlisted hosts. Secrets never enter the
+    // agent or tool process in plaintext.
+    const injectionRule = this.options.credentialInjection?.find((rule) =>
+      matchesHostPattern(targetHost, targetPort, rule.hostPattern),
+    );
+    const headers: Record<string, string> = {};
+    for (const [key, value] of Object.entries(req.headers)) {
+      if (value !== undefined) {
+        headers[key] = Array.isArray(value) ? value.join(', ') : value;
+      }
+    }
+    if (injectionRule) {
+      try {
+        const credential = await this.getCachedCredential(
+          injectionRule.credentialTarget,
+        );
+        if (credential) {
+          const value = injectionRule.headerPrefix
+            ? `${injectionRule.headerPrefix}${credential}`
+            : credential;
+          headers[injectionRule.headerName] = value;
+          this.logger.info(
+            {
+              event: 'sandbox.egress.credential_injected',
+              host: targetHost,
+              header: injectionRule.headerName,
+            },
+            `Injected credential into outbound request to ${targetHost}`,
+          );
+        }
+      } catch (err) {
+        this.logger.warn(
+          {
+            event: 'sandbox.egress.credential_injection_failed',
+            host: targetHost,
+            target: injectionRule.credentialTarget,
+            err: err instanceof Error ? err : new Error(String(err)),
+          },
+          `Failed to inject credential for ${targetHost}`,
+        );
+        // Continue without credential injection - the request is still allowed
+      }
+    }
+
     // Forward allowed HTTP request
     const proxyReq = http.request(
       {
@@ -451,7 +517,7 @@ export class EgressProxy {
         port: targetPort,
         method: req.method,
         path: targetPath,
-        headers: req.headers,
+        headers,
         timeout: this.options.timeoutMs,
       },
       (proxyRes) => {
@@ -538,6 +604,33 @@ export class EgressProxy {
       destSocket.destroy();
     });
   }
+
+  /**
+   * Retrieves a credential from Windows Credential Manager with caching.
+   * Credentials are cached for 5 minutes to avoid spawning the helper process
+   * on every request.
+   */
+  private async getCachedCredential(targetName: string): Promise<string | undefined> {
+    const now = this.clock.now().getTime();
+    const cached = this.credentialCache.get(targetName);
+    if (cached && cached.expiry > now) {
+      return cached.value;
+    }
+
+    try {
+      const result = await this.credentialManager.readCredential(targetName);
+      if (result.found && result.credentialBlob) {
+        this.credentialCache.set(targetName, {
+          value: result.credentialBlob,
+          expiry: now + 5 * 60 * 1000, // 5 minute cache
+        });
+        return result.credentialBlob;
+      }
+    } catch {
+      // Credential not found or error - return undefined
+    }
+    return undefined;
+  }
 }
 
 // ============================================================================
@@ -547,6 +640,7 @@ export class EgressProxy {
 export interface EgressControllerConfig {
   readonly allowedHosts?: readonly string[] | undefined;
   readonly defaultAllowNetwork?: boolean | undefined;
+  readonly credentialInjection?: readonly CredentialInjectionRule[] | undefined;
 }
 
 export class NetworkEgressController {
@@ -564,6 +658,7 @@ export class NetworkEgressController {
     if (!this.proxy) {
       this.proxy = new EgressProxy({
         allowedHosts: this.config.allowedHosts,
+        credentialInjection: this.config.credentialInjection,
       });
       await this.proxy.start();
     }
@@ -724,5 +819,178 @@ export class WindowsFirewallManager {
     } catch (err) {
       return { success: false, message: (err as Error).message };
     }
+  }
+}
+
+// ============================================================================
+// Egress Enforcement Status
+// ============================================================================
+
+/**
+ * Egress enforcement status. Reflects whether outbound network traffic from
+ * sandboxed processes is enforced at the OS level (Windows Firewall) or only
+ * at the application level (proxy environment variables, which a hostile
+ * child process can ignore).
+ */
+export type EgressEnforcementStatus = 'ACTIVE' | 'ADVISORY_ONLY' | 'UNAVAILABLE';
+
+/**
+ * Current egress enforcement status. Set by ensureEgressEnforcement() during
+ * daemon boot. Read by process runners before allowing network-enabled runs.
+ */
+let egressEnforcementStatus: EgressEnforcementStatus = 'UNAVAILABLE';
+
+/**
+ * WFP filter IDs created during daemon boot, tracked for cleanup on shutdown.
+ */
+let wfpFilterIds: number[] = [];
+
+/**
+ * Returns the current egress enforcement status.
+ */
+export function getEgressEnforcementStatus(): EgressEnforcementStatus {
+  return egressEnforcementStatus;
+}
+
+/**
+ * Returns the WFP filter IDs created during boot, for cleanup on shutdown.
+ */
+export function getWfpFilterIds(): readonly number[] {
+  return wfpFilterIds;
+}
+
+/**
+ * Removes all WFP filters created during boot. Called during daemon shutdown.
+ */
+export async function removeWfpFilters(): Promise<void> {
+  const client = new WfpClient();
+  for (const filterId of wfpFilterIds) {
+    try {
+      await client.removeFilter(filterId);
+    } catch {
+      // Ignore errors during cleanup
+    }
+  }
+  wfpFilterIds = [];
+}
+
+/**
+ * Ensures egress enforcement is active before allowing network-enabled runs.
+ *
+ * Called during daemon boot. If network access is enabled in config but the
+ * process is not elevated (cannot create Windows Firewall rules), enforcement
+ * cannot be guaranteed and network-enabled runs are refused.
+ *
+ * @param allowNetwork - Whether sandboxed processes are allowed network access.
+ * @param programPath - The program path to create the firewall rule for (defaults to process.execPath).
+ * @throws AirError if network is enabled but enforcement cannot be guaranteed.
+ */
+export async function ensureEgressEnforcement(
+  allowNetwork: boolean,
+  programPath: string = process.execPath,
+  allowedHosts: readonly string[] = [],
+): Promise<void> {
+  if (process.platform !== 'win32') {
+    egressEnforcementStatus = 'UNAVAILABLE';
+    return;
+  }
+
+  if (!allowNetwork) {
+    // Network is deny-by-default; no enforcement needed.
+    egressEnforcementStatus = 'ACTIVE';
+    return;
+  }
+
+  // Network is allowed. We must enforce at the OS level because a hostile
+  // child process can ignore proxy environment variables.
+  const elevated = await WindowsFirewallManager.isElevated();
+  if (!elevated) {
+    egressEnforcementStatus = 'ADVISORY_ONLY';
+    throw new AirError(
+      'PERMISSION_DENIED',
+      'Network egress is enabled but the process is not elevated. Windows Firewall rules cannot be created without Administrator privileges. Refusing to start with network access enabled.',
+      {
+        context: {
+          recommendation: 'Run as Administrator or disable sandbox.networkDefault',
+        },
+      },
+    );
+  }
+
+  // Elevated: add outbound block rule for the daemon process (netsh, defense-in-depth).
+  // This blocks direct outbound connections from any child process that ignores
+  // proxy environment variables. The egress proxy (127.0.0.1) remains reachable
+  // for sanctioned traffic.
+  const ruleName = 'AIR Egress Enforcement';
+  try {
+    await WindowsFirewallManager.removeRule(ruleName).catch(() => {
+      // Ignore if rule doesn't exist yet
+    });
+    const result = await WindowsFirewallManager.addOutboundBlockRule(ruleName, programPath);
+    if (!result.success) {
+      egressEnforcementStatus = 'ADVISORY_ONLY';
+      throw new AirError(
+        'PERMISSION_DENIED',
+        `Failed to create Windows Firewall egress rule: ${result.message}`,
+        { context: { ruleName, programPath } },
+      );
+    }
+  } catch (err) {
+    egressEnforcementStatus = 'ADVISORY_ONLY';
+    throw err;
+  }
+
+  // WFP enforcement: create kernel-level filters via air-sandbox.exe.
+  // 1. Default deny: block all outbound traffic from sandboxed processes.
+  // 2. Allow rules: permit outbound traffic to each allowlisted host.
+  const wfpClient = new WfpClient();
+  try {
+    // Default deny filter
+    const defaultDeny = createDefaultDenyFilter('sandboxed-processes');
+    const denyResult = await wfpClient.addFilter(defaultDeny);
+    wfpFilterIds.push(denyResult.filterId);
+
+    // Allow filters for each allowlisted host
+    for (const hostPattern of allowedHosts) {
+      const { host: patHost, port: patPort } = parseHostAndPort(hostPattern, 0);
+      if (patHost === '*' || patHost === '') {
+        // Universal wildcard - skip, default deny already blocks everything
+        continue;
+      }
+
+      // Determine remote address from host pattern
+      const remoteAddress = patHost;
+      const remotePort = patPort !== 0 ? patPort.toString() : '443';
+
+      // If the pattern looks like an IP address or CIDR, use it directly
+      // Otherwise, it's a hostname - we can't resolve it at boot time for WFP
+      // (WFP works with IP addresses), so we use a broad allow rule
+      const allowSpec = createAllowFilter(
+        `AIR WFP Allow ${patHost}`,
+        remoteAddress,
+        remotePort,
+        6, // TCP
+      );
+      const allowResult = await wfpClient.addFilter(allowSpec);
+      wfpFilterIds.push(allowResult.filterId);
+    }
+
+    egressEnforcementStatus = 'ACTIVE';
+    defaultLogger.info(
+      { event: 'sandbox.wfp.enforcement_active', filterCount: wfpFilterIds.length },
+      `WFP egress enforcement active with ${wfpFilterIds.length} filters`,
+    );
+  } catch (err) {
+    // WFP failed but netsh rule is already in place - fall back to advisory
+    egressEnforcementStatus = 'ADVISORY_ONLY';
+    defaultLogger.warn(
+      { event: 'sandbox.wfp.enforcement_failed', err: err instanceof Error ? err : new Error(String(err)) },
+      'WFP egress enforcement failed, falling back to advisory-only',
+    );
+    throw new AirError(
+      'PERMISSION_DENIED',
+      `WFP egress enforcement failed: ${err instanceof Error ? err.message : String(err)}`,
+      { context: { ruleName, programPath } },
+    );
   }
 }

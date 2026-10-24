@@ -63,13 +63,29 @@ export {
   type EgressProxyOptions,
   type EgressControllerConfig,
   type FirewallRuleResult,
+  type EgressEnforcementStatus,
   EgressProxy,
   NetworkEgressController,
   WindowsFirewallManager,
   parseHostAndPort,
   matchesHostPattern,
   evaluateEgressPolicy,
+  getEgressEnforcementStatus,
+  ensureEgressEnforcement,
 } from './network.js';
+export {
+  type WfpFilterSpec,
+  type WfpFilterResult,
+  type WfpClientOptions,
+  WFP_PROTOCOL_VERSION,
+  WfpClient,
+  createDefaultDenyFilter,
+  createAllowFilter,
+} from './wfp.js';
+export {
+  dpapiEncrypt,
+  dpapiDecrypt,
+} from './dpapi.js';
 
 export {
   type TrackedChildProcess,
@@ -93,5 +109,26 @@ export {
   deriveAppContainerSid,
   isAppContainerSupported,
 } from './appcontainer.js';
+
+export {
+  type AppContainerRunnerOptions,
+  type AppContainerLaunchOptions,
+  APPCONTAINER_PROFILE_PREFIX,
+  APPCONTAINER_CAPABILITIES as APPCONTAINER_RUNNER_CAPABILITIES,
+  AppContainerRunner,
+  createDefaultAppContainerRunner,
+} from './appcontainer-runner.js';
+
+export {
+  type CredentialSpec,
+  type CredentialResult,
+  type CredentialListEntry,
+  type CredentialManagerClientOptions,
+  type CmRequest,
+  type CmResponse,
+  CREDENTIAL_MANAGER_PROTOCOL_VERSION,
+  CredentialManagerClient,
+  buildMasterKeyTargetName,
+} from './credential-manager-client.js';
 
 

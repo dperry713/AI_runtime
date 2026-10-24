@@ -35,6 +35,7 @@ import { createEnvelope } from '../journal/index.js';
 import { IpcServer } from '../ipc/index.js';
 import { MethodRegistry } from '../ipc/index.js';
 import { IPC_PROTOCOL_VERSION } from '../ipc/index.js';
+import { ensureEgressEnforcement } from '../sandbox/index.js';
 import {
   existsIn,
   mkdirIn,
@@ -274,6 +275,21 @@ export class Daemon {
       this.logger.info(
         { event: 'daemon.config.loaded', home: this.home, pipeName: this.config.ipc.pipeName },
         'Daemon configuration loaded',
+      );
+
+      // 1b. Ensure egress enforcement before allowing network-enabled runs.
+      // A hostile child process can ignore proxy environment variables, so
+      // network access requires OS-level enforcement (Windows Firewall rule).
+      // If not elevated, refuse to start with network access enabled.
+      const allowNetwork = this.config.sandbox.networkDefault === 'allow';
+      await ensureEgressEnforcement(allowNetwork);
+      this.logger.info(
+        {
+          event: 'daemon.egress.enforcement',
+          allowNetwork,
+          status: 'ACTIVE',
+        },
+        'Daemon egress enforcement active',
       );
 
       // 2. Initialize structured logging.

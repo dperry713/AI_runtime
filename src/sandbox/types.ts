@@ -25,6 +25,8 @@ export interface ProcessRunOptions {
   readonly allowNetwork?: boolean | undefined;
   /** Explicit allowed network host patterns (e.g. ['api.github.com', '*.anthropic.com']). */
   readonly networkAllowlist?: readonly string[] | undefined;
+  /** Whether to use AppContainer sandbox (default: auto - enabled for network-enabled runs on Windows). */
+  readonly appContainer?: boolean | undefined;
   /** Shell interpreter to use. Default 'powershell' on Windows. */
   readonly shell?: ShellType | boolean | undefined;
   /** Maximum execution duration in milliseconds before SIGKILL/taskkill. */

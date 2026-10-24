@@ -24,7 +24,9 @@ import type {
   ProcessRunResult,
 } from './types.js';
 import type { NetworkEgressController } from './network.js';
+import { getEgressEnforcementStatus } from './network.js';
 import { killProcessTree } from './process-tree.js';
+import type { AppContainerRunner } from './appcontainer-runner.js';
 
 // ============================================================================
 // 1. Environment Allowlist & Scrubbing Engine
@@ -183,6 +185,7 @@ export interface StandardProcessRunnerOptions {
   readonly egressController?: NetworkEgressController | undefined;
   readonly orphanReaper?: ChildProcessTracker | undefined;
   readonly logger?: ComponentLogger | undefined;
+  readonly appContainerRunner?: AppContainerRunner | undefined;
 }
 
 const DEFAULT_TIMEOUT_MS = 60_000;
@@ -196,6 +199,7 @@ export class StandardProcessRunner implements ProcessRunner {
   private readonly workspaceRoot?: string | undefined;
   private readonly egressController?: NetworkEgressController | undefined;
   private readonly orphanReaper?: ChildProcessTracker | undefined;
+  private readonly appContainerRunner?: AppContainerRunner | undefined;
   private readonly logger: ComponentLogger;
   private readonly activeProcesses = new Map<number, ActiveProcessInfo>();
 
@@ -207,6 +211,7 @@ export class StandardProcessRunner implements ProcessRunner {
     this.workspaceRoot = options?.workspaceRoot;
     this.egressController = options?.egressController;
     this.orphanReaper = options?.orphanReaper;
+    this.appContainerRunner = options?.appContainerRunner;
     this.logger = options?.logger ?? getLogger('process-runner');
   }
 
@@ -239,6 +244,42 @@ export class StandardProcessRunner implements ProcessRunner {
 
     if (options.signal?.aborted) {
       throw new AirError('CANCELLED', 'Process execution was cancelled before start');
+    }
+
+    // Egress enforcement: a hostile child process can ignore proxy environment
+    // variables and connect directly. Network-enabled runs are refused unless
+    // OS-level enforcement (Windows Firewall rule) is active.
+    if (options.allowNetwork && getEgressEnforcementStatus() !== 'ACTIVE') {
+      throw new AirError(
+        'PERMISSION_DENIED',
+        'Network access is not enforced at the OS level. Refusing network-enabled process run.',
+        {
+          context: {
+            allowNetwork: true,
+            enforcementStatus: getEgressEnforcementStatus(),
+          },
+        },
+      );
+    }
+
+    // AppContainer default sandbox for risky tools (W2-R003).
+    // Network-enabled runs and any run with appContainer: true use AppContainer
+    // by default, falling back to Job Objects + restricted token when unavailable.
+    const useAppContainer =
+      options.appContainer ?? (options.allowNetwork === true && this.appContainerRunner?.isAvailable());
+
+    if (useAppContainer && this.appContainerRunner) {
+      this.logger.debug(
+        { event: 'process.appcontainer_selected', command: options.command, allowNetwork: options.allowNetwork },
+        'Using AppContainer sandbox for process execution',
+      );
+      return this.appContainerRunner.run({
+        ...options,
+        profileName: options.appContainer !== false ? undefined : undefined,
+        capabilities: options.allowNetwork ? ['internetClient'] : [],
+        allowNetwork: options.allowNetwork,
+        networkAllowlist: options.networkAllowlist,
+      });
     }
 
     // 1. Path Jail & Working Directory Validation

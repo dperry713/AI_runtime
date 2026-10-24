@@ -11,6 +11,56 @@ import {
   resetSecretStore,
   setSecretStore,
 } from '../../../src/secrets/index.js';
+import type { CmRequest, CmResponse } from '../../../src/sandbox/index.js';
+
+function makeCmMockHandler(): (request: CmRequest) => Promise<CmResponse> {
+  let masterKey: string | undefined = undefined;
+  return (request: CmRequest): Promise<CmResponse> => {
+    switch (request.op) {
+      case 'cm_read':
+        if (masterKey) {
+          return Promise.resolve({
+            type: 'cm_credential_read',
+            version: 1,
+            targetName: request.targetName,
+            credentialBlob: masterKey,
+            userName: 'AIR Vault Master Key',
+            found: true,
+          });
+        }
+        return Promise.resolve({
+          type: 'cm_credential_read',
+          version: 1,
+          targetName: request.targetName,
+          credentialBlob: undefined,
+          userName: undefined,
+          found: false,
+        });
+      case 'cm_write':
+        masterKey = request.credential.credentialBlob;
+        return Promise.resolve({
+          type: 'cm_credential_written',
+          version: 1,
+          targetName: request.credential.targetName,
+          success: true,
+        });
+      case 'cm_delete':
+        masterKey = undefined;
+        return Promise.resolve({
+          type: 'cm_credential_deleted',
+          version: 1,
+          targetName: request.targetName,
+          success: true,
+        });
+      case 'cm_list':
+        return Promise.resolve({
+          type: 'cm_credentials_listed',
+          version: 1,
+          credentials: [],
+        });
+    }
+  };
+}
 
 describe('secrets module (P1-T09)', () => {
   let tempDir: string;
@@ -100,7 +150,8 @@ describe('secrets module (P1-T09)', () => {
 
     it('throws AirError(SECRET_ACCESS_DENIED) on corrupted or tampered ciphertext', async () => {
       const vaultDir = path.join(tempDir, 'vault');
-      const store = new CredentialManagerStore({ vaultDir });
+      const cmMock = makeCmMockHandler();
+      const store = new CredentialManagerStore({ vaultDir, mockHandler: cmMock });
 
       await store.set('target_key', 'plain-secret-data');
 
@@ -122,14 +173,16 @@ describe('secrets module (P1-T09)', () => {
 
     it('returns undefined for non-existent secret and false on delete missing', async () => {
       const vaultDir = path.join(tempDir, 'vault');
-      const store = new CredentialManagerStore({ vaultDir });
+      const cmMock = makeCmMockHandler();
+      const store = new CredentialManagerStore({ vaultDir, mockHandler: cmMock });
       expect(await store.get('missing')).toBeUndefined();
       expect(await store.delete('missing')).toBe(false);
     });
 
     it('throws INVALID_ARGUMENT when secret name is empty', async () => {
       const vaultDir = path.join(tempDir, 'vault');
-      const store = new CredentialManagerStore({ vaultDir });
+      const cmMock = makeCmMockHandler();
+      const store = new CredentialManagerStore({ vaultDir, mockHandler: cmMock });
       await expect(store.get('')).rejects.toSatisfy(
         (err: unknown) => err instanceof AirError && err.code === 'INVALID_ARGUMENT',
       );

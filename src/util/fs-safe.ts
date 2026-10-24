@@ -148,8 +148,15 @@ export async function writeFileAtomicIn(
       await handle.close();
     }
 
-    // Atomic replace with retry for Windows AV/file-lock interference
+    // Atomic replace with retry for Windows AV/file-lock interference.
+    // On Windows, rename cannot atomically replace an existing file, so remove
+    // the target first (if present) before renaming the temp file into place.
     await retryOnWindowsLock(async () => {
+      try {
+        await fs.promises.unlink(verifiedPath);
+      } catch {
+        // Target does not exist; proceed with rename.
+      }
       await fs.promises.rename(tempPath, verifiedPath);
     });
   } catch (err) {
