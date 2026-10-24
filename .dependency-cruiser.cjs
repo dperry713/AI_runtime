@@ -20,20 +20,21 @@ const forbidden = [];
 for (const [mod, layer] of Object.entries(layers)) {
   const higher = modules.filter((m) => layers[m] > layer);
   if (higher.length > 0) {
+    const from = { path: '^src/' + mod + '/' };
     forbidden.push({
-      name: `layer-${mod}-no-upward-imports`,
-      comment: `${mod} (layer ${layer}) must not import higher layers`,
+      name: 'layer-' + mod + '-no-upward-imports',
+      comment: mod + ' (layer ' + layer + ') must not import higher layers',
       severity: 'error',
-      from: { path: `^src/${mod}/` },
-      to: { path: `^src/(${higher.join('|')})/` },
+      from,
+      to: { path: '^src/(' + higher.join('|') + ')/' },
     });
   }
   forbidden.push({
-    name: `${mod}-index-only`,
-    comment: `Other modules may import ${mod} only through its index.ts`,
+    name: mod + '-index-only',
+    comment: 'Other modules may import ' + mod + ' only through its index.ts',
     severity: 'error',
-    from: { path: '^src/', pathNot: `^src/${mod}/` },
-    to: { path: `^src/${mod}/`, pathNot: `^src/${mod}/index\\.ts$` },
+    from: { path: '^src/', pathNot: '^src/' + mod + '/' },
+    to: { path: '^src/' + mod + '/', pathNot: '^src/' + mod + '/index\\.ts$' },
   });
 }
 

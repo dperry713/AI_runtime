@@ -37,18 +37,15 @@ import {
   writeFileAtomicIn,
 } from '../util/index.js';
 import { redactor } from './redactor.js';
-import {
-  CredentialManagerClient,
-  buildMasterKeyTargetName,
-  type CmRequest,
-  type CmResponse,
-} from '../sandbox/index.js';
+import type { CmRequest, CmResponse, CredentialManagerPort, CredentialSpec } from '../types/index.js';
 import type { SecretStore } from './store.js';
 
 export interface CredentialManagerOptions {
   vaultDir?: string | undefined;
   masterKey?: string | undefined;
-  /** Optional mock handler for testing (bypasses spawning air-sandbox.exe). */
+  /** Inject the sandbox-backed client at the composition root. */
+  client?: CredentialManagerPort | undefined;
+  /** Optional protocol mock for tests; never spawns a process. */
   mockHandler?: ((request: CmRequest) => Promise<CmResponse>) | undefined;
 }
 
@@ -73,7 +70,7 @@ interface EncryptedPayload {
 export class CredentialManagerStore implements SecretStore {
   private readonly vaultDir: string;
   private readonly optionsMasterKey: string | undefined;
-  private readonly cmClient: CredentialManagerClient;
+  private readonly cmClient: CredentialManagerPort | undefined;
 
   private initialized = false;
   private deriving = false;
@@ -84,9 +81,30 @@ export class CredentialManagerStore implements SecretStore {
     const baseHome = options.vaultDir ?? path.join(resolveAirHome(), 'credentials');
     this.vaultDir = canonicalize(baseHome);
     this.optionsMasterKey = options.masterKey;
-    this.cmClient = new CredentialManagerClient({
-      mockHandler: options.mockHandler,
-    });
+    this.cmClient = options.client ?? (options.mockHandler ? {
+      readCredential: async (targetName: string) => {
+        const response = await options.mockHandler!({ op: 'cm_read', targetName });
+        if (response.type !== 'cm_credential_read') {
+          throw new AirError('SECRET_ACCESS_DENIED', 'Mock Credential Manager read returned an unexpected response');
+        }
+        return {
+          credentialBlob: response.credentialBlob,
+          userName: response.userName,
+          found: response.found,
+        };
+      },
+      writeCredential: async (spec: CredentialSpec) => {
+        const response = await options.mockHandler!({ op: 'cm_write', credential: spec });
+        if (response.type !== 'cm_credential_written') {
+          throw new AirError('SECRET_ACCESS_DENIED', 'Mock Credential Manager write returned an unexpected response');
+        }
+        return {
+          targetName: response.targetName,
+          success: response.success,
+          message: response.success ? 'Credential written successfully' : 'Credential write failed',
+        };
+      },
+    } : undefined);
   }
 
   // ============================================================================
@@ -130,17 +148,24 @@ export class CredentialManagerStore implements SecretStore {
    * It never exists in plaintext on disk.
    */
   private async getOrCreateMasterKey(): Promise<Buffer> {
+    const client = this.cmClient;
+    if (!client) {
+      throw new AirError(
+        'INVALID_STATE',
+        'CredentialManagerStore requires an injected sandbox CredentialManagerClient when no masterKey is provided',
+      );
+    }
     const targetName = buildMasterKeyTargetName(this.vaultDir);
 
     // Try to read existing master key from Credential Manager
-    const existing = await this.cmClient.readCredential(targetName);
+    const existing = await client.readCredential(targetName);
     if (existing.found && existing.credentialBlob) {
       return Buffer.from(existing.credentialBlob, 'base64');
     }
 
     // No existing master key: generate a new one, store in Credential Manager
     const newKey = randomBytes(32);
-    await this.cmClient.writeCredential({
+    await client.writeCredential({
       targetName,
       credentialBlob: newKey.toString('base64'),
       userName: 'AIR Vault Master Key',
@@ -259,4 +284,10 @@ export class CredentialManagerStore implements SecretStore {
     }
     return sanitized;
   }
+}
+
+/** Stable vault-scoped target name used by Windows Credential Manager. */
+function buildMasterKeyTargetName(vaultDir: string): string {
+  const hash = Buffer.from(vaultDir, 'utf-8').toString('base64').replace(/[^a-zA-Z0-9]/g, '_');
+  return `AIR:MasterKey:${hash}`;
 }

@@ -139,3 +139,5 @@ export {
   stopAirService,
   queryAirService,
 } from './windows-service.js';
+
+export { createCredentialManagerStore, type WindowsCredentialManagerStoreOptions } from './credential-manager-store-factory.js';

@@ -115,7 +115,7 @@ describe('dependency-cruiser layer rules', () => {
 
     const { errorCount } = runDepcruise();
 
-    expect(errorCount).toBe(1); // Known violation: secrets/credential-manager.ts imports from sandbox/index.ts (CredentialManagerClient uses child_process, must be in sandbox per Rule R2)
+    expect(errorCount).toBe(0); // Valid index-only imports must not leave any dependency violations.
 
     cleanup();
   });
