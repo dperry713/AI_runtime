@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  AIR Runtime MSI Installer (Phase W5 - Packaging).
+  
+  Build with WiX Toolset v3.x:
+    candle.exe AIR.wixproj
+    light.exe AIR.wixobj -out AIR-Setup.msi
+  
+  Or with WiX Toolset v4:
+    dotnet wix build AIR.wixproj
+-->
+
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*"
+           Name="AIR Runtime"
+           Language="1033"
+           Version="1.0.0.0"
+           Manufacturer="AIR Team"
+           UpgradeCode="8E4A1F2B-3C4D-5E6F-7A8B-9C0D1E2F3A4B">
+
+    <Package Id="*"
+             Keywords="Installer"
+             Description="AIR Runtime Installer"
+             Comments="AIR - AI Runtime Daemon and Shell"
+             Manufacturer="AIR Team"
+             InstallerVersion="500"
+             Languages="1033"
+             Compressed="yes"
+             SummaryCodepage="1252"/>
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of AIR Runtime is already installed." />
+    <MediaTemplate EmbedCab="yes"/>
+
+    <Feature Id="ProductFeature" Title="AIR Runtime" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentGroupRef Id="ServiceComponents" />
+    </Feature>
+
+    <!-- Installation directory: %PROGRAMFILES%\AIR -->
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="INSTALLFOLDER" Name="AIR">
+          <Directory Id="BINDIR" Name="bin">
+            <!-- Binaries -->
+            <Component Id="BinComponents" Guid="*">
+              <File Id="AirExe" Name="aird.exe" Source="..\dist\service\main.js" KeyPath="yes" />
+              <File Id="AirShellExe" Name="air.exe" Source="..\dist\shell\main.js" />
+              <File Id="AirSandboxExe" Name="air-sandbox.exe" Source="..\native\air-sandbox\target\release\air-sandbox.exe" />
+            </Component>
+          </Directory>
+          <Directory Id="CONFIGDIR" Name="config">
+            <Component Id="ConfigComponents" Guid="*">
+              <File Id="AirConfig" Name="air.config.json" Source="..\config\air.config.example.json" />
+            </Component>
+          </Directory>
+        </Directory>
+      </Directory>
+
+      <!-- Runtime data directory: %LOCALAPPDATA%\AIR -->
+      <Directory Id="LocalAppDataFolder">
+        <Directory Id="AIRHomeDir" Name="AIR">
+          <Directory Id="RunDir" Name="run" />
+          <Directory Id="JournalDir" Name="journal" />
+          <Directory Id="IndexDir" Name="index" />
+          <Directory Id="MemoryDir" Name="memory" />
+          <Directory Id="LogsDir" Name="logs" />
+          <Directory Id="CredentialsDir" Name="credentials" />
+        </Directory>
+      </Directory>
+    </Directory>
+
+    <!-- Components -->
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <ComponentRef Id="BinComponents" />
+      <ComponentRef Id="ConfigComponents" />
+    </ComponentGroup>
+
+    <!-- Service components -->
+    <ComponentGroup Id="ServiceComponents" Directory="TARGETDIR">
+      <Component Id="ServiceComponent" Guid="*" KeyPath="yes">
+        <ServiceInstall Id="ServiceInstall"
+                        Name="aird"
+                        DisplayName="AIR Runtime Daemon"
+                        Description="AIR - AI Runtime daemon. Hosts LLM-driven agents as managed, supervised, observable, policy-governed processes."
+                        Start="auto"
+                        Account="LocalSystem"
+                        ErrorControl="normal"
+                        Type="ownProcess"
+                        Vital="yes"
+                        Arguments=""
+                        />
+        <ServiceControl Id="ServiceControl"
+                        Name="aird"
+                        Start="install"
+                        Stop="both"
+                        Remove="uninstall"
+                        Wait="yes" />
+      </Component>
+    </ComponentGroup>
+
+  </Product>
+</Wix>

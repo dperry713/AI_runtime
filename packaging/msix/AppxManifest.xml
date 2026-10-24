@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  AIR Runtime MSIX Package Manifest (Phase W5 - Packaging).
+  
+  MSIX is the modern Windows app packaging format. Build with:
+    makeappx pack /o /d AIRPackage /p AIR-Setup.msix
+  
+  Sign with:
+    signtool sign /fd SHA256 /a /f <cert.pfx> AIR-Setup.msix
+-->
+
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+         xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+         xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+         xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+         IgnorableNamespaces="uap rescap desktop">
+
+  <Identity Name="AIR.Runtime"
+            Publisher="CN=AIR Team"
+            Version="1.0.0.0" />
+
+  <Properties>
+    <DisplayName>AIR Runtime</DisplayName>
+    <PublisherDisplayName>AIR Team</PublisherDisplayName>
+    <Publisher>CN=AIR Team</Publisher>
+    <Description>AIR - AI Runtime Daemon and Shell</Description>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.19041.0" />
+    <TargetDeviceFamily Name="Windows.Universal" MinVersion="10.0.17763.0" MaxVersionTested="10.0.19041.0" />
+  </Dependencies>
+
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+    <rescap:Capability Name="appExecutionAlias" />
+    <desktop:Capability Name="broadFileSystemAccess" />
+    <desktop:Capability Name="enterpriseAuthentication" />
+    <desktop:Capability Name="privateNetworkClientServer" />
+    <desktop:Capability Name="internetClient" />
+  </Capabilities>
+
+  <Applications>
+    <Application Id="Aird"
+                 Executable="aird.exe"
+                 EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+          DisplayName="AIR Runtime Daemon"
+          Description="AIR - AI Runtime daemon"
+          Square150x150Logo="Assets\Square150x150Logo.png"
+          Square44x44Logo="Assets\Square44x44Logo.png"
+          BackgroundColor="transparent">
+        <uap:DefaultTile ShortName="AIR" />
+        <uap:SplashScreen Image="Assets\SplashScreen.png" />
+      </uap:VisualElements>
+      <Extensions>
+        <desktop:Extension Category="windows.fullTrustApplication" />
+        <desktop:Extension Category="windows.appExecutionAlias">
+          <desktop:AppExecutionAlias>
+            <desktop:ExecutionAlias Alias="aird.exe" />
+            <desktop:ExecutionAlias Alias="air.exe" />
+          </desktop:AppExecutionAlias>
+        </desktop:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+</Package>

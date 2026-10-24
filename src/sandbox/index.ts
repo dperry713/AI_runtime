@@ -126,3 +126,16 @@ export {
   CredentialManagerClient,
   buildMasterKeyTargetName,
 } from './credential-manager-client.js';
+
+export {
+  type ServiceInstallOptions,
+  type ServiceStatus,
+  AIR_SERVICE_NAME,
+  AIR_SERVICE_DISPLAY_NAME,
+  WindowsService,
+  installAirService,
+  uninstallAirService,
+  startAirService,
+  stopAirService,
+  queryAirService,
+} from './windows-service.js';

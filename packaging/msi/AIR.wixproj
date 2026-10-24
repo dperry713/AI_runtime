@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  AIR Runtime WiX Project (Phase W5 - Packaging).
+  
+  Build with WiX Toolset v3.x:
+    msbuild AIR.wixproj
+-->
+
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProductName>AIR Runtime</ProductName>
+    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
+    <IntermediatePath>obj\$(Configuration)\</IntermediatePath>
+    <TargetExt>.msi</TargetExt>
+    <MsiTargetExt>.msi</MsiTargetExt>
+    <WixTargetsPath Condition=" '$(WixTargetsPath)' == '' AND '$(MSBuildExtensionsPath32)' != '' ">$(MSBuildExtensionsPath32)\Microsoft\WiX\v3.x\Wix.targets</WixTargetsPath>
+    <WixToolPath Condition=" '$(WixToolPath)' == '' AND '$(MSBuildExtensionsPath32)' != '' ">$(MSBuildExtensionsPath32)\Microsoft\WiX\v3.x\bin\</WixToolPath>
+  </PropertyGroup>
+
+  <Import Project="$(WixTargetsPath)" />
+
+  <ItemGroup>
+    <Compile Include="AIR.wxs" />
+  </ItemGroup>
+
+  <Target Name="AfterBuild">
+    <Message Text="MSI installer built at $(OutputPath)$(ProductName)-Setup.msi" Importance="high" />
+  </Target>
+</Project>

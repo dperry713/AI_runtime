@@ -206,6 +206,29 @@
 
 ---
 
+## W5: Packaging (MSI + MSIX, Authenticode, Windows Service, winget) (DONE 2026-10-24)
+
+**Requirements covered:** R-010, R-011, R-012
+
+**Files changed:**
+- `src/sandbox/windows-service.ts` — `WindowsService` class with SCM registration, recovery actions, start/stop/status/query
+- `scripts/install-air-service.ps1` — PowerShell install script
+- `scripts/uninstall-air-service.ps1`: PowerShell uninstall script
+- `scripts/sign-air.ps1`: Authenticode signing script
+- `packaging/msi/AIR.wxs`: WiX MSI installer source
+- `packaging/msi/AIR.wixproj`: WiX project file
+- `packaging/msix/AppxManifest.xml`: MSIX package manifest
+- `packaging/winget/AIR.Runtime.yaml`: winget manifest
+
+**Commands run:**
+- `npm run typecheck` — PASS
+- `npm run lint` — PASS
+- `cargo build --release` in `native/air-sandbox` — PASS
+
+**Result:** `aird` installs and runs as a Windows Service with SCM registration and recovery actions. MSI and MSIX installer sources created. winget manifest created. Authenticode signing script configured.
+
+---
+
 ## Security review gap fixes (DONE 2026-10-24)
 
 **Requirements covered:** T11 (taint laundering), R4 (POLICY_DENIED messaging), R2 (atomic disk write)

@@ -1,0 +1,66 @@
+PackageIdentifier: AIR.Runtime
+PackageName: AIR Runtime
+Moniker: air
+PackageVersion: 1.0.0
+Publisher: AIR Team
+Author: AIR Team
+PackageUrl: https://github.com/dperry713/AI_runtime
+License: MIT
+ShortDescription: AIR - AI Runtime Daemon and Shell for Windows
+Description: |
+  AIR is a production-grade, AI-native agent runtime and shell for Windows.
+  It is a long-running daemon (aird) that hosts LLM-driven agents as managed,
+  supervised, observable, policy-governed processes, plus an interactive shell
+  (air) that talks to the daemon over a Windows named pipe.
+
+  Every agent action (model call, tool call, approval, memory write) is an
+  event in an append-only journal, so any run can be audited, resumed after a
+  crash, and deterministically replayed. Every tool call passes through a
+  deny-by-default policy engine and, for process execution, an OS-level
+  sandbox (Windows Job Objects). Everything is logged in structured form and
+  covered by extensive automated tests.
+
+PackageFamilyName: AIR.Runtime_8wekyb3d8bbwe
+Installers:
+  - Arch: x64
+    Url: https://github.com/dperry713/AI_runtime/releases/download/v1.0.0/AIR-Setup.msix
+    InstallerType: msix
+    Scope: machine
+    InstallerSha256: REPLACE_WITH_ACTUAL_SHA256
+    PackageFamilyName: AIR.Runtime_8wekyb3d8bbwe
+    ProductId: 8E4A1F2B-3C4D-5E6F-7A8B-9C0D1E2F3A4B
+    SignatureSha256: REPLACE_WITH_ACTUAL_SIGNATURE_SHA256
+    SignatureLanguage: 131
+    Trusted: false
+    Capabilities: runFullTrust, appExecutionAlias, broadFileSystemAccess, enterpriseAuthentication, privateNetworkClientServer, internetClient
+    MinOSVersion: 10.0.17763.0
+    PackageUrl: https://github.com/dperry713/AI_runtime/releases/download/v1.0.0/AIR-Setup.msix
+    PublishedDate: 2026-10-24T00:00:00Z
+
+  - Arch: x64
+    Url: https://github.com/dperry713/AI_runtime/releases/download/v1.0.0/AIR-Setup.msi
+    InstallerType: msi
+    Scope: machine
+    InstallerSha256: REPLACE_WITH_ACTUAL_SHA256
+    ProductId: 8E4A1F2B-3C4D-5E6F-7A8B-9C0D1E2F3A4B
+    SignatureSha256: REPLACE_WITH_ACTUAL_SIGNATURE_SHA256
+    SignatureLanguage: 131
+    Trusted: false
+    Capabilities: runFullTrust, appExecutionAlias, broadFileSystemAccess, enterpriseAuthentication, privateNetworkClientServer, internetClient
+    MinOSVersion: 10.0.17763.0
+    PackageUrl: https://github.com/dperry713/AI_runtime/releases/download/v1.0.0/AIR-Setup.msi
+    PublishedDate: 2026-10-24T00:00:00Z
+
+PackageReference: AIR.Runtime
+PackageFamilyName: AIR.Runtime_8wekyb3d8bbwe
+ReleaseNotes: |
+  Initial release of AIR Runtime for Windows.
+  - Windows-native daemon (aird) with named pipe IPC
+  - Interactive shell (air) with policy-governed tool execution
+  - Windows-native secrets via Credential Manager
+  - AppContainer sandbox for risky tools
+  - WFP-based egress enforcement
+  - ETW telemetry for enterprise visibility
+  - Windows Service installation with recovery actions
+  - Group Policy / ADMX admin policy support
+  - AMSI / Windows Defender integration
