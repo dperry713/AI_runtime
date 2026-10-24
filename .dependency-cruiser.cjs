@@ -20,9 +20,7 @@ const forbidden = [];
 for (const [mod, layer] of Object.entries(layers)) {
   const higher = modules.filter((m) => layers[m] > layer);
   if (higher.length > 0) {
-    const from = mod === 'secrets'
-      ? { path: '^src/secrets/', pathNot: '^src/secrets/credential-manager\\.ts$' }
-      : { path: '^src/' + mod + '/' };
+    const from = { path: '^src/' + mod + '/' };
     forbidden.push({
       name: 'layer-' + mod + '-no-upward-imports',
       comment: mod + ' (layer ' + layer + ') must not import higher layers',
@@ -40,17 +38,6 @@ for (const [mod, layer] of Object.entries(layers)) {
   });
 }
 
-// The Credential Manager store is the one explicit bridge from the secrets
-// layer to the sandbox public client. It must not depend on any other higher
-// layer; all other secrets modules remain subject to the normal layer rule.
-forbidden.push(
-  {
-    name: 'credential-manager-adapter-no-other-upward-imports',
-    comment: 'The Credential Manager adapter may depend on sandbox only, not other higher layers',
-    severity: 'error',
-    from: { path: '^src/secrets/credential-manager\\.ts$' },
-    to: { path: '^src/(journal|policy|providers|memory|tools|mcp|agent|kernel|ipc|service|shell)/' },
-  },
   {
     name: 'child-process-only-in-sandbox',
     comment: 'Rule R2: only src/sandbox may spawn processes',
