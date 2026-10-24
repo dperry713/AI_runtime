@@ -157,6 +157,8 @@ function resolveDefaultProvider(clock: Clock): Provider {
   if (openaiKey && openaiKey.trim().length > 0) {
     return new OpenAIProvider({
       apiKey: openaiKey,
+      baseUrl: process.env['OPENAI_BASE_URL'],
+      defaultModel: process.env['OPENAI_MODEL'],
       clock,
     });
   }
@@ -185,9 +187,18 @@ export async function main(): Promise<void> {
       goal: goalArg,
     });
 
+    if (outcome.text) {
+      process.stdout.write(`\nAgent Response:\n${outcome.text}\n\nStatus: ${outcome.status} (Turns: ${outcome.totalTurns})\n`);
+    } else {
+      process.stdout.write(`\nStatus: ${outcome.status} (Turns: ${outcome.totalTurns})\n`);
+    }
+
     if (outcome.status === 'completed') {
       process.exitCode = 0;
     } else {
+      if (outcome.reason) {
+        process.stdout.write(`Reason: ${outcome.reason}\n`);
+      }
       process.exitCode = 1;
     }
   } catch (err) {

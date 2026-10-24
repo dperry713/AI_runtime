@@ -352,6 +352,35 @@ function cmdAuditVerify(_ctx: CommandContext): Promise<CommandResult> {
   });
 }
 
+async function cmdGui(_ctx: CommandContext, args: string[]): Promise<CommandResult> {
+  const port = args[0] ? Number.parseInt(args[0], 10) : 4100;
+  const { startGuiServer } = await import('../gui/index.js');
+  const server = await startGuiServer({ port });
+
+  process.stdout.write(`\n=====================================================================\n`);
+  process.stdout.write(`  AIR Control Center is live at: ${server.url}\n`);
+  process.stdout.write(`  Open ${server.url} in your browser to interact with the runtime.\n`);
+  process.stdout.write(`  Press Ctrl+C to stop the GUI server.\n`);
+  process.stdout.write(`=====================================================================\n\n`);
+
+  await new Promise<void>((resolve) => {
+    process.once('SIGINT', () => {
+      void server.close().then(() => resolve());
+    });
+    process.once('SIGTERM', () => {
+      void server.close().then(() => resolve());
+    });
+  });
+
+  return {
+    kind: 'text',
+    data: {
+      status: 'stopped',
+      url: server.url,
+    },
+  };
+}
+
 // ============================================================================
 // Built-in command registration
 // ============================================================================
@@ -515,5 +544,13 @@ export function registerBuiltinCommands(registry: CommandRegistry): void {
     description: 'Verify the audit chain integrity',
     usage: 'audit.verify',
     handler: cmdAuditVerify,
+  });
+
+  registry.register({
+    name: 'gui',
+    aliases: ['ui', 'dashboard'],
+    description: 'Launch the AIR Control Center interactive web GUI',
+    usage: 'gui [port]',
+    handler: cmdGui,
   });
 }

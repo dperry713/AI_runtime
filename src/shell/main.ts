@@ -10,6 +10,7 @@
  *   air [--json] [--pipe-name <name>]          # interactive REPL
  */
 
+import { pathToFileURL } from 'node:url';
 import { Repl } from './repl.js';
 import { writeError, writeResult, type OutputOptions } from './output.js';
 import { ExitCode } from './exit-codes.js';
@@ -165,4 +166,15 @@ export async function runAir(argv: string[] = process.argv.slice(2)): Promise<nu
       // Ignore disconnect errors during cleanup
     }
   }
+}
+
+// Invoke CLI entry point when executed directly
+if (
+  process.argv[1] &&
+  (import.meta.url === pathToFileURL(process.argv[1]).href ||
+    import.meta.url.endsWith('/' + process.argv[1].replace(/\\/g, '/')))
+) {
+  void runAir().then((code) => {
+    process.exitCode = code;
+  });
 }

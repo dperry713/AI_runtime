@@ -11,7 +11,7 @@ const layers = {
   agent: 5,
   kernel: 6,
   ipc: 7,
-  service: 8, shell: 8,
+  service: 8, shell: 8, client: 8, gui: 8,
 };
 
 const modules = Object.keys(layers);

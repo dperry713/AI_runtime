@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIR Control Center — AI Runtime for Windows</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Bar -->
+    <header class="top-nav">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="url(#accent-gradient)" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M2 17L12 22L22 17" stroke="url(#accent-gradient)" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M2 12L12 17L22 12" stroke="url(#accent-gradient)" stroke-width="2" stroke-linejoin="round"/>
+            <defs>
+              <linearGradient id="accent-gradient" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#00f2fe"/>
+                <stop offset="1" stop-color="#4facfe"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">AIR <span class="badge-v1">CONTROL CENTER</span></h1>
+          <p class="brand-sub">Production-grade AI-native agent runtime for Windows</p>
+        </div>
+      </div>
+
+      <div class="top-meta">
+        <div class="daemon-pill" id="daemon-status-pill">
+          <span class="status-dot pulse-green" id="daemon-dot"></span>
+          <span class="status-text" id="daemon-status-text">Connecting to Daemon...</span>
+        </div>
+        <div class="meta-tag" id="active-runs-tag">Runs: 0</div>
+        <div class="meta-tag" id="uptime-tag">Uptime: --</div>
+        <button class="btn-refresh" id="btn-refresh" title="Refresh state">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="main-layout">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <nav class="nav-menu">
+          <button class="nav-item active" data-tab="studio">
+            <span class="nav-icon">⚡</span>
+            <span class="nav-label">Command Studio</span>
+          </button>
+          <button class="nav-item" data-tab="runs">
+            <span class="nav-icon">📊</span>
+            <span class="nav-label">Runs & Processes</span>
+            <span class="nav-counter" id="nav-runs-count">0</span>
+          </button>
+          <button class="nav-item" data-tab="approvals">
+            <span class="nav-icon">🛡️</span>
+            <span class="nav-label">Approvals</span>
+            <span class="nav-counter alert" id="nav-approvals-count">0</span>
+          </button>
+          <button class="nav-item" data-tab="logs">
+            <span class="nav-icon">📜</span>
+            <span class="nav-label">Live Telemetry</span>
+          </button>
+          <button class="nav-item" data-tab="settings">
+            <span class="nav-icon">⚙️</span>
+            <span class="nav-label">Runtime Config</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="policy-status-box">
+            <div class="policy-header">
+              <span class="shield-icon">🔒</span>
+              <strong>Security Model</strong>
+            </div>
+            <p>Deny-by-default policy, Windows Job Object sandbox, hash-chained audit log active.</p>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Content Views -->
+      <main class="content-viewport">
+        <!-- 1. Command Studio -->
+        <section class="tab-pane active" id="pane-studio">
+          <div class="pane-header">
+            <div>
+              <h2>Agent Command Studio</h2>
+              <p>Configure agent parameters, select policy governance, and dispatch tasks toward goals.</p>
+            </div>
+          </div>
+
+          <div class="grid-studio">
+            <!-- Left: Config & Goal input -->
+            <div class="card glass-card">
+              <div class="card-title">1. Select Agent Persona</div>
+              <div class="agent-selector-grid" id="agent-selector-grid">
+                <!-- Dynamically populated or static personas -->
+                <div class="agent-card selected" data-agent-id="developer">
+                  <div class="agent-card-header">
+                    <strong>Developer</strong>
+                    <span class="badge policy-badge write">project-write</span>
+                  </div>
+                  <p>Standard development agent. Full workspace reads, safe edits, and test operations.</p>
+                </div>
+                <div class="agent-card" data-agent-id="reviewer">
+                  <div class="agent-card-header">
+                    <strong>Reviewer</strong>
+                    <span class="badge policy-badge read">readonly</span>
+                  </div>
+                  <p>Read-only inspector. Analyzes code, tests, and security without write permissions.</p>
+                </div>
+                <div class="agent-card" data-agent-id="dev-shell">
+                  <div class="agent-card-header">
+                    <strong>Dev-Shell</strong>
+                    <span class="badge policy-badge shell">dev-shell</span>
+                  </div>
+                  <p>Full toolchain execution agent inside the Windows Job Object sandbox.</p>
+                </div>
+                <div class="agent-card" data-agent-id="auditor">
+                  <div class="agent-card-header">
+                    <strong>Auditor</strong>
+                    <span class="badge policy-badge locked">locked-down</span>
+                  </div>
+                  <p>Zero-trust verification agent. Execution and egress strictly prohibited.</p>
+                </div>
+              </div>
+
+              <div class="card-title mt-4">2. Workflow Goal & Instructions</div>
+              <div class="quick-prompts">
+                <span class="quick-prompt" data-prompt="Analyze the dependencies in package.json and verify runtime integrity.">📦 Audit Dependencies</span>
+                <span class="quick-prompt" data-prompt="Review src/observability/rotation.ts and verify error and stream cleanup logic.">🔍 Security Review</span>
+                <span class="quick-prompt" data-prompt="Check git status and summarize active working branch state.">🪟 Check Workspace</span>
+              </div>
+              <div class="input-wrap">
+                <textarea id="goal-input" rows="4" placeholder="Enter objective for the agent (e.g. 'Audit the repository security rules and check open tasks')..."></textarea>
+              </div>
+
+              <div class="action-row">
+                <button class="btn btn-primary" id="btn-dispatch-run">
+                  <span class="btn-icon">▶</span>
+                  <span>Dispatch Run</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Right: Live Output Stream -->
+            <div class="card glass-card output-card">
+              <div class="card-header-row">
+                <div class="card-title">Live Execution & Output</div>
+                <div class="run-status-badge" id="studio-run-status">Idle</div>
+              </div>
+
+              <div class="output-container" id="studio-output">
+                <div class="empty-state">
+                  <span class="empty-icon">💡</span>
+                  <p>Select an agent persona and dispatch a run to see real-time tool execution, turn state transitions, and model responses.</p>
+                </div>
+              </div>
+
+              <div class="output-footer">
+                <div class="meta-indicator" id="output-meta">Turns: 0 | Session: None</div>
+                <button class="btn btn-secondary btn-sm" id="btn-clear-output">Clear</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. Runs & Processes -->
+        <section class="tab-pane" id="pane-runs">
+          <div class="pane-header">
+            <div>
+              <h2>Runs & Supervised Processes</h2>
+              <p>Inspect active, paused, and completed agent runs managed by the kernel.</p>
+            </div>
+          </div>
+
+          <div class="card glass-card">
+            <div class="table-responsive">
+              <table class="data-table" id="runs-table">
+                <thead>
+                  <tr>
+                    <th>Run ID</th>
+                    <th>Session</th>
+                    <th>Agent</th>
+                    <th>Goal</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="runs-tbody">
+                  <tr>
+                    <td colspan="6" class="text-center text-muted">No runs recorded yet in this daemon session.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. Approvals & Policy -->
+        <section class="tab-pane" id="pane-approvals">
+          <div class="pane-header">
+            <div>
+              <h2>Policy & Human-in-the-Loop Approvals</h2>
+              <p>Deny-by-default security requires explicit authorization for high-risk tool operations.</p>
+            </div>
+          </div>
+
+          <div class="card glass-card">
+            <div class="approvals-container" id="approvals-list">
+              <div class="empty-state">
+                <span class="empty-icon">🛡️</span>
+                <p>No pending approvals. When a tool call requires human operator authorization, it will appear here for review.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4. Live Telemetry -->
+        <section class="tab-pane" id="pane-logs">
+          <div class="pane-header">
+            <div>
+              <h2>Live Telemetry & Logs</h2>
+              <p>Real-time structured events from %LOCALAPPDATA%\AIR\logs\runtime.log.</p>
+            </div>
+            <div class="pane-actions">
+              <button class="btn btn-secondary btn-sm" id="btn-clear-logs">Clear View</button>
+              <label class="toggle-wrap">
+                <input type="checkbox" id="auto-scroll-logs" checked>
+                <span>Auto-scroll</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="terminal-card">
+            <div class="terminal-header">
+              <span class="term-dot red"></span>
+              <span class="term-dot yellow"></span>
+              <span class="term-dot green"></span>
+              <span class="term-title">runtime.log — live stream</span>
+            </div>
+            <pre class="terminal-body" id="log-terminal">Loading log records...</pre>
+          </div>
+        </section>
+
+        <!-- 5. Runtime Config -->
+        <section class="tab-pane" id="pane-settings">
+          <div class="pane-header">
+            <div>
+              <h2>Runtime Configuration</h2>
+              <p>Effective settings loaded from %LOCALAPPDATA%\AIR\config\air.config.json.</p>
+            </div>
+          </div>
+
+          <div class="grid-settings">
+            <div class="card glass-card">
+              <div class="card-title">LLM Provider Configuration</div>
+              <div class="settings-list" id="settings-provider-box">
+                <div class="setting-item">
+                  <strong>Active Provider</strong>
+                  <span class="badge" id="cfg-provider">Loading...</span>
+                </div>
+                <div class="setting-item">
+                  <strong>Model Endpoint</strong>
+                  <span id="cfg-model">--</span>
+                </div>
+                <div class="setting-item">
+                  <strong>Base URL</strong>
+                  <span id="cfg-baseurl">--</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card glass-card">
+              <div class="card-title">Security & Sandbox Boundaries</div>
+              <div class="settings-list">
+                <div class="setting-item">
+                  <strong>Network Egress</strong>
+                  <span class="badge policy-badge read">none (blocked by default)</span>
+                </div>
+                <div class="setting-item">
+                  <strong>Process Isolation</strong>
+                  <span>Windows Job Objects</span>
+                </div>
+                <div class="setting-item">
+                  <strong>Audit Log Hash Chaining</strong>
+                  <span class="badge policy-badge write">SHA-256 HMAC</span>
+                </div>
+                <div class="setting-item">
+                  <strong>Event Journal Format</strong>
+                  <span>JSONL + SQLite WAL index</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

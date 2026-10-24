@@ -12,7 +12,7 @@
     "aird": "dist/service/main.js"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && node -e \"fs.cpSync('src/gui/public', 'dist/gui/public', { recursive: true, force: true });\"",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint .",
     "format": "prettier --write .",
