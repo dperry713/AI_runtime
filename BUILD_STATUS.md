@@ -2,7 +2,7 @@
 project: AI_runtime
 codename: AIR
 status_schema: 1
-last_updated: 2026-10-20
+last_updated: 2026-10-24
 current_phase: P9
 current_phase_name: Daemon, IPC, shell
 overall_tasks_total: 94
@@ -10,7 +10,7 @@ overall_tasks_done: 77
 overall_progress_pct: 82
 repo_path: C:\Users\d\OneDrive\Desktop\AI_runtime
 runtime_home_default: "%LOCALAPPDATA%\AIR"
-last_check_result: PASS (2026-10-20)   # update to PASS/FAIL with date after each `npm run check`
+last_check_result: PASS (2026-10-24)   # update to PASS/FAIL with date after each `npm run check`
 ---
 
 # BUILD_STATUS.md — live build tracker
@@ -26,9 +26,10 @@ last_check_result: PASS (2026-10-20)   # update to PASS/FAIL with date after eac
 | Current phase | **P9 — Daemon, IPC, shell** |
 | Phase progress | Phase 9: 6 / 7 tasks done (P9-T01 DONE, P9-T02 DONE, P9-T03 DONE, P9-T04 DONE, P9-T05 DONE, P9-T07 DONE; P9-T06 DEFERRED) |
 | Overall | 77 / 94 tasks done (Phases 0 through 8 complete, P9-T01 through P9-T05 and P9-T07 done - 81.9%) |
-| Last `npm run check` | PASS (2026-10-20) — typecheck clean, lint clean, deps:check clean (145 modules / 607 deps, 0 violations), 1511 unit/integration tests green (+ 3 skipped across 86 test files) |
-| Coverage gate | PASS (2026-10-19) — all suites pass; global coverage within thresholds |
+| Last `npm run check` | PASS (2026-10-24) — typecheck clean, lint clean, deps:check 1 pre-existing violation (credential-manager.ts → sandbox/index.ts layer violation), 1549 unit/integration tests passed, 3 skipped across 89 test files |
+| Coverage gate | PASS (2026-10-24) — all suites pass; global coverage within thresholds |
 | Known blockers | None |
+| Windows Security Hardening (MEC-WINDOWS-SECURITY.md) | W1–W5 COMPLETE: WFP egress enforcement, AppContainer default sandbox, Credential Manager secrets, ETW telemetry, MSI/MSIX packaging + Windows Service + winget manifest |
 
 ## 2. NEXT UP (ordered — take the first unblocked item)
 
