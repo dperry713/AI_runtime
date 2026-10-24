@@ -4,50 +4,71 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
   schedule:
-    - cron: '0 6 * * *' # nightly: chaos + full security + perf
+    - cron: '0 6 * * *' # nightly extended chaos, security, and performance simulations
 
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: windows-2022
-    timeout-minutes: 30
+    timeout-minutes: 90
     permissions:
       contents: read
-      security-events: write
     env:
-      # node-gyp can mis-detect newer Visual Studio Preview registrations on hosted Windows runners.
-      # Pin the installed VS 2022 C++ toolchain for native dependencies such as better-sqlite3.
+      # Pin the installed VS 2022 C++ toolchain for native Node dependencies.
       GYP_MSVS_VERSION: '2022'
       npm_config_msvs_version: '2022'
+      CI: 'true'
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm run deps:check
-      - run: npm run test:coverage
-      - run: npm run test:e2e
-      - run: npm run test:security
-      - name: Repeated benchmark and accuracy suite
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Compile production build
+        run: npm run build
+      - name: TypeScript typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Enforce module boundaries
+        run: npm run deps:check
+      - name: Unit and integration tests with coverage gates
+        run: npm run test:coverage
+      - name: End-to-end simulations
+        run: npm run test:e2e
+      - name: Adversarial security regressions
+        run: npm run test:security
+      - name: Chaos and fault-injection simulations
+        run: npm run test:chaos
+      - name: Performance regression suite
+        run: npm run test:perf
+      - name: Evaluation and accuracy suite
+        run: npm run test:eval
+      - name: Repeated real-world and adversarial benchmark suite
         run: ./scripts/benchmark.ps1 -Iterations 3
         shell: pwsh
-      - run: npm audit --omit=dev --audit-level=high
-      - uses: actions/upload-artifact@v7
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+      - name: Upload coverage, benchmark, and diagnostic logs
         if: always()
+        uses: actions/upload-artifact@v7
         with:
-          name: coverage-and-benchmark-report
+          name: air-ci-reports
           path: |
             coverage/
-            var/test-logs/benchmark-report.json
-          if-no-files-found: ignore
+            var/test-logs/
+          if-no-files-found: warn
+          retention-days: 14
 
   nightly:
     if: github.event_name == 'schedule'
@@ -55,25 +76,35 @@ jobs:
     timeout-minutes: 120
     permissions:
       contents: read
-      security-events: write
     env:
       GYP_MSVS_VERSION: '2022'
+      npm_config_msvs_version: '2022'
+      CI: 'true'
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - name: Chaos suite
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Extended chaos simulation (1000 iterations)
         run: npm run test:chaos
         env:
           AIR_CHAOS_ITERATIONS: '1000'
-      - run: npm run test:security
-      - run: npm run test:perf
-      - uses: actions/upload-artifact@v7
+      - name: Adversarial security regression suite
+        run: npm run test:security
+      - name: Performance simulations
+        run: npm run test:perf
+      - name: Evaluation and accuracy suite
+        run: npm run test:eval
+      - name: Upload nightly diagnostics
         if: always()
+        uses: actions/upload-artifact@v7
         with:
-          name: nightly-logs
-          path: var/test-logs/
-          if-no-files-found: ignore
+          name: air-nightly-logs
+          path: |
+            coverage/
+            var/test-logs/
+          if-no-files-found: warn
+          retention-days: 14

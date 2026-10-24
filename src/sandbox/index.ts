@@ -82,10 +82,6 @@ export {
   createDefaultDenyFilter,
   createAllowFilter,
 } from './wfp.js';
-export {
-  dpapiEncrypt,
-  dpapiDecrypt,
-} from './dpapi.js';
 
 export {
   type TrackedChildProcess,
@@ -130,5 +126,3 @@ export {
   CredentialManagerClient,
   buildMasterKeyTargetName,
 } from './credential-manager-client.js';
-
-
