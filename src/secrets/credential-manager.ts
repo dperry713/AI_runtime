@@ -81,9 +81,10 @@ export class CredentialManagerStore implements SecretStore {
     const baseHome = options.vaultDir ?? path.join(resolveAirHome(), 'credentials');
     this.vaultDir = canonicalize(baseHome);
     this.optionsMasterKey = options.masterKey;
-    this.cmClient = options.client ?? (options.mockHandler ? {
+    const mockHandler = options.mockHandler;
+    this.cmClient = options.client ?? (mockHandler ? {
       readCredential: async (targetName: string) => {
-        const response = await options.mockHandler!({ op: 'cm_read', targetName });
+        const response = await mockHandler({ op: 'cm_read', targetName });
         if (response.type !== 'cm_credential_read') {
           throw new AirError('SECRET_ACCESS_DENIED', 'Mock Credential Manager read returned an unexpected response');
         }
@@ -94,7 +95,7 @@ export class CredentialManagerStore implements SecretStore {
         };
       },
       writeCredential: async (spec: CredentialSpec) => {
-        const response = await options.mockHandler!({ op: 'cm_write', credential: spec });
+        const response = await mockHandler({ op: 'cm_write', credential: spec });
         if (response.type !== 'cm_credential_written') {
           throw new AirError('SECRET_ACCESS_DENIED', 'Mock Credential Manager write returned an unexpected response');
         }
