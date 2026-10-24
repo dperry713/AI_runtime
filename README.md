@@ -318,7 +318,7 @@ npm run test:coverage  # enforces thresholds
 <div align="center">
 
 **AIR is under active development.**  
-Phases 0–8 complete. Phase 9 (Daemon + IPC + Shell) nearly finished.
+Phases 0–10 complete (81 / 94 tasks, 86.2%). Phase 11 (Multi-agent & scheduling) next up.
 
 <br/>
 

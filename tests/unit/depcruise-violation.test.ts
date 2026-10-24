@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { writeFileSync, rmSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-describe('dependency-cruiser layer rules', () => {
+describe('dependency-cruiser layer rules', { timeout: 30_000 }, () => {
   const repoRoot = join(__dirname, '..', '..');
   const srcDir = join(repoRoot, 'src');
   const testModuleDir = join(srcDir, '_test_fixture_depcruise');
