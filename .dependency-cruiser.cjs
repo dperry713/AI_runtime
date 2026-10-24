@@ -24,7 +24,153 @@ for (const [mod, layer] of Object.entries(layers)) {
       name: `layer-${mod}-no-upward-imports`,
       comment: `${mod} (layer ${layer}) must not import higher layers`,
       severity: 'error',
-      from: { path: `^src/${mod}/` },
+      from: mod === 'secrets'
+        ? { path: '^src/secrets/', pathNot: '^src/secrets/credential-manager\\.ts
+    });
+  }
+  forbidden.push({
+    name: `${mod}-index-only`,
+    comment: `Other modules may import ${mod} only through its index.ts`,
+    severity: 'error',
+    from: { path: '^src/', pathNot: `^src/${mod}/` },
+    to: { path: `^src/${mod}/`, pathNot: `^src/${mod}/index\\.ts$` },
+  });
+}
+
+// CredentialManagerStore is the single deliberate bridge from the secrets layer
+// to the sandbox's public Credential Manager client. Keep the exception narrow:
+// all other secrets modules remain subject to the normal layer rule, and this
+// adapter may not import any other higher-level module.
+forbidden.push(
+  {
+    name: 'credential-manager-adapter-no-other-upward-imports',
+    comment: 'The Credential Manager adapter may depend on sandbox only, not other higher layers',
+    severity: 'error',
+    from: { path: '^src/secrets/credential-manager\\.ts
+    name: 'child-process-only-in-sandbox',
+    comment: 'Rule R2: only src/sandbox may spawn processes',
+    severity: 'error',
+    from: { path: '^src/', pathNot: '^src/sandbox/' },
+    to: { dependencyTypes: ['core'], path: '^(node:)?child_process$' },
+  },
+  {
+    name: 'fs-only-in-designated-modules',
+    comment: 'Rule R2: node:fs only in util, journal, config, observability, memory',
+    severity: 'error',
+    from: { path: '^src/', pathNot: '^src/(util|journal|config|observability|memory)/' },
+    to: { dependencyTypes: ['core'], path: '^(node:)?fs(/promises)?$' },
+  },
+  {
+    name: 'no-circular',
+    severity: 'error',
+    from: {},
+    to: { circular: true },
+  },
+);
+
+module.exports = {
+  forbidden,
+  options: {
+    doNotFollow: { path: 'node_modules' },
+    tsConfig: { fileName: 'tsconfig.json' },
+    tsPreCompilationDeps: true,
+    enhancedResolveOptions: {
+      exportsFields: ['exports'],
+      conditionNames: ['import', 'require', 'node', 'default'],
+      extensions: ['.ts', '.js'],
+    },
+  },
+};
+ }
+        : { path: `^src/${mod}/` },
+      to: { path: `^src/(${higher.join('|')})/` },
+    });
+  }
+  forbidden.push({
+    name: `${mod}-index-only`,
+    comment: `Other modules may import ${mod} only through its index.ts`,
+    severity: 'error',
+    from: { path: '^src/', pathNot: `^src/${mod}/` },
+    to: { path: `^src/${mod}/`, pathNot: `^src/${mod}/index\\.ts$` },
+  });
+}
+
+forbidden.push(
+  {
+    name: 'child-process-only-in-sandbox',
+    comment: 'Rule R2: only src/sandbox may spawn processes',
+    severity: 'error',
+    from: { path: '^src/', pathNot: '^src/sandbox/' },
+    to: { dependencyTypes: ['core'], path: '^(node:)?child_process$' },
+  },
+  {
+    name: 'fs-only-in-designated-modules',
+    comment: 'Rule R2: node:fs only in util, journal, config, observability, memory',
+    severity: 'error',
+    from: { path: '^src/', pathNot: '^src/(util|journal|config|observability|memory)/' },
+    to: { dependencyTypes: ['core'], path: '^(node:)?fs(/promises)?$' },
+  },
+  {
+    name: 'no-circular',
+    severity: 'error',
+    from: {},
+    to: { circular: true },
+  },
+);
+
+module.exports = {
+  forbidden,
+  options: {
+    doNotFollow: { path: 'node_modules' },
+    tsConfig: { fileName: 'tsconfig.json' },
+    tsPreCompilationDeps: true,
+    enhancedResolveOptions: {
+      exportsFields: ['exports'],
+      conditionNames: ['import', 'require', 'node', 'default'],
+      extensions: ['.ts', '.js'],
+    },
+  },
+};
+ },
+    to: { path: '^src/(journal|policy|providers|memory|tools|mcp|agent|kernel|ipc|service|shell)/' },
+  },
+  {
+    name: 'child-process-only-in-sandbox',
+    comment: 'Rule R2: only src/sandbox may spawn processes',
+    severity: 'error',
+    from: { path: '^src/', pathNot: '^src/sandbox/' },
+    to: { dependencyTypes: ['core'], path: '^(node:)?child_process$' },
+  },
+  {
+    name: 'fs-only-in-designated-modules',
+    comment: 'Rule R2: node:fs only in util, journal, config, observability, memory',
+    severity: 'error',
+    from: { path: '^src/', pathNot: '^src/(util|journal|config|observability|memory)/' },
+    to: { dependencyTypes: ['core'], path: '^(node:)?fs(/promises)?$' },
+  },
+  {
+    name: 'no-circular',
+    severity: 'error',
+    from: {},
+    to: { circular: true },
+  },
+);
+
+module.exports = {
+  forbidden,
+  options: {
+    doNotFollow: { path: 'node_modules' },
+    tsConfig: { fileName: 'tsconfig.json' },
+    tsPreCompilationDeps: true,
+    enhancedResolveOptions: {
+      exportsFields: ['exports'],
+      conditionNames: ['import', 'require', 'node', 'default'],
+      extensions: ['.ts', '.js'],
+    },
+  },
+};
+ }
+        : { path: `^src/${mod}/` },
       to: { path: `^src/(${higher.join('|')})/` },
     });
   }
