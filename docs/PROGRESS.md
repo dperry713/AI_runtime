@@ -398,3 +398,21 @@
 - `docs/RELEASE_CHECKLIST.md` — Release checklist verifying all quality, security, and architecture gates from P0 through P12.
 
 **Result:** Release readiness verified and documented.
+
+---
+
+## v1.0.0 Tagged Release & CI Gate Verification (2026-10-24)
+
+- **Date:** 2026-10-24
+- **Release Tag:** `v1.0.0`
+- **Gate Commands & Evidence:**
+  - `npm run check` (Exit 0): 0 type errors, 0 lint errors, 0 dependency violations across 162 modules, 1,699 unit/integration tests passed across 99 test files.
+  - `npm run test:e2e` (Exit 0): 4 tests passed.
+  - `npm run test:security` (Exit 0): 77 tests passed.
+  - `npm run test:chaos` (Exit 0): 7 tests passed.
+  - `npm run test:benchmark` (Exit 0): 48 tests passed.
+  - `pwsh -File ./scripts/benchmark.ps1 -Iterations 3` (Exit 0): 100% pass rate, p50: ~2.3s, peak memory 405.0 MiB.
+  - `npm audit --omit=dev --audit-level=high` (Exit 0): 0 vulnerabilities found.
+  - `npx vitest run --passWithNoTests` (Exit 0): 1,787 tests passed across 106 test files.
+  - `pwsh -File ./scripts/check.ps1` (Exit 0): Gate log recorded at `var/check-logs/check-20261024-091022.log`.
+- **Result:** Complete public consistency across `README.md`, `BUILD_STATUS.md`, `docs/STATUS.md`, and git tag `v1.0.0`.

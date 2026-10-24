@@ -24,16 +24,17 @@ last_check_result: PASS (2026-10-24)   # update to PASS/FAIL with date after eac
 | Item | Value |
 |---|---|
 | Current phase | **P12 — Hardening, packaging, release** |
-| Phase progress | Phase 12: 7 / 7 tasks done (Exit Gate P12 satisfied; v1.0 release candidate verified) |
+| Phase progress | Phase 12: 7 / 7 tasks done (Exit Gate P12 satisfied; v1.0.0 released) |
 | Overall | 88 / 94 tasks done (93.6% — Phases 0 through 10 and Phase 12 complete; Phase 11 deferred post-v1) |
-| Last `npm run check` | PASS (2026-10-24) — typecheck clean (0 errors), lint clean (0 errors), deps:check 0 violations (162 modules), 1696 unit/integration tests passed, 3 skipped across 99 test files |
-| Coverage gate | PASS (2026-10-24) — Statements 88.54% (≥85%), Branches 80.21% (≥80%), Functions 90.38% (≥85%), Lines 89.51% (≥85%). Total: 1780 automated tests passing. |
+| Last `npm run check` | PASS (2026-10-24) — typecheck clean (0 errors), lint clean (0 errors), deps:check 0 violations (162 modules), 1,699 unit/integration tests passed, 3 skipped across 99 test files |
+| Coverage gate | PASS (2026-10-24) — Statements 88.54% (≥85%), Branches 80.21% (≥80%), Functions 90.38% (≥85%), Lines 89.51% (≥85%). Total: 1,787 automated tests passing across 106 test files. |
+| Release Tag | **v1.0.0** (released 2026-10-24 with release notes and gate log attached) |
 | Known blockers | None |
 | Windows Security Hardening (MEC-WINDOWS-SECURITY.md) | W1–W5 COMPLETE: WFP egress enforcement, AppContainer default sandbox, Credential Manager secrets, ETW telemetry, MSI/MSIX packaging + Windows Service + winget manifest |
 
 ## 2. NEXT UP (ordered — take the first unblocked item)
 
-1. **v1.0 Release** - All exit gates satisfied; release checklist verified in `docs/RELEASE_CHECKLIST.md`.
+1. **Post-v1 Phase 11** — Multi-agent orchestration, supervisor (`P11-T01`), messaging (`P11-T02`), scheduler (`P11-T03`), and orchestration tools (`P11-T05`).
 
 ## 3. Blockers / human actions required
 

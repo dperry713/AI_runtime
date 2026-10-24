@@ -6,10 +6,11 @@
 
 [![Node](https://img.shields.io/badge/Node.js-22_LTS-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x_strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Tests](https://img.shields.io/badge/Tests-1690+_passing-22c55e?style=for-the-badge)](#)
+[![Tests](https://img.shields.io/badge/Tests-1699_check_%7C_1787_total-22c55e?style=for-the-badge)](#)
 [![Coverage](https://img.shields.io/badge/Coverage-≥85%_gated-0ea5e9?style=for-the-badge)](#)
 [![Platform](https://img.shields.io/badge/Platform-Windows_10%2F11-0078D4?style=for-the-badge&logo=windows&logoColor=white)](#)
 [![Status](https://img.shields.io/badge/Status-Phase_12_~94%25-22c55e?style=for-the-badge)](#status)
+[![Release](https://img.shields.io/badge/Release-v1.0.0-blue?style=for-the-badge)](#)
 
 <br/>
 
@@ -190,10 +191,11 @@ flowchart TB
 | Item | Value |
 |------|-------|
 | **Current Phase** | P12 — Hardening, packaging, release |
-| **Overall Progress** | **88 / 94 tasks** (~94%) |
-| **Last `npm run check`** | PASS (typecheck + lint + deps + 1696 tests) |
-| **Coverage Gates** | Enforced (≥85% global, higher on critical modules) |
-| **Next Up** | v1.0 Release Candidate Verification |
+| **Overall Progress** | **88 / 94 tasks** (~94% — Phases 0–10 & Phase 12 complete; Phase 11 deferred post-v1) |
+| **Last `npm run check`** | PASS (typecheck clean, lint clean, deps 0 violations, 1,699 tests passed, 3 skipped across 99 test files) |
+| **Total Automated Tests** | **1,787 passed, 3 skipped across 106 test files** (unit, integration, e2e, chaos, security, real-world benchmark) |
+| **Coverage Gates** | Enforced (≥85% global: 89.51% lines, 80.21% branches, 90.38% functions; higher on critical modules) |
+| **Release Tag** | **v1.0.0** (Exit Gate P12 verified; all CI and benchmark gates passed) |
 
 <details>
 <summary><strong>Phase Progress Overview</strong></summary>
@@ -317,8 +319,8 @@ npm run test:coverage  # enforces thresholds
 
 <div align="center">
 
-**AIR is under active development.**  
-Phases 0–10 and Phase 12 complete (88 / 94 tasks, 93.6%). Phase 11 multi-agent scheduled post-v1. AIR v1.0 release candidate ready.
+**AIR v1.0.0 has been released and verified.**  
+Phases 0–10 and Phase 12 complete (88 / 94 tasks, 93.6%). Phase 11 multi-agent scheduled post-v1. 1,699 check tests passed (1,787 total automated tests across 106 test files).
 
 <br/>
 

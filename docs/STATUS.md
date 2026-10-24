@@ -30,8 +30,12 @@
 None.
 
 ## Last Verification
-`npm run check` — typecheck PASS (0 errors), lint PASS (0 errors), deps:check PASS (0 violations across 158 modules), npm test PASS (97 test files passed, 1669 passed, 3 skipped).
+`npm run check` — typecheck PASS (0 errors), lint PASS (0 errors), deps:check PASS (0 violations across 162 modules), npm test PASS (99 test files passed, 1,699 passed, 3 skipped).
 `npm run test:e2e` — PASS (4 passed).
 `npm run test:security` — PASS (77 passed).
 `npm run test:chaos` — PASS (7 passed).
-`npm run test:coverage` — PASS (Statements 88.38% ≥ 85%, Branches 80.02% ≥ 80%, Functions 90.20% ≥ 85%, Lines 89.35% ≥ 85%). Total: 1753 automated tests passing.
+`npm run test:benchmark` — PASS (48 passed).
+`scripts/benchmark.ps1 -Iterations 3` — PASS (100% pass rate, p50: ~2.3s).
+`npm run test:coverage` — PASS (Statements 88.54% ≥ 85%, Branches 80.21% ≥ 80%, Functions 90.38% ≥ 85%, Lines 89.51% ≥ 85%).
+Total Automated Tests: **1,787 passed, 3 skipped across 106 test files**.
+Release Tag: **v1.0.0** (released 2026-10-24 with release notes and gate log attached).

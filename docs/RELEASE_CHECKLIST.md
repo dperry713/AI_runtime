@@ -29,7 +29,7 @@ This document tracks verification of all exit criteria and release readiness for
 - [x] **Zero TypeScript Errors:** `npm run typecheck` clean.
 - [x] **Zero Lint Warnings/Errors:** `npm run lint` clean (no `console.log` in `src/`).
 - [x] **Zero Architectural Violations:** `npm run deps:check` clean across 162 modules and 685 dependencies.
-- [x] **Automated Test Pyramid:** 1696 automated unit and integration tests passing (`100%` pass rate, 3 skipped live provider tests).
-- [x] **Coverage Gate Met:** Global statements ≥85%, branches ≥80%, functions ≥85%, lines ≥85%.
+- [x] **Automated Test Pyramid:** 1,699 automated unit and integration tests passing (`100%` pass rate across 99 test files, 3 skipped live provider tests; 1,787 total automated tests passing across 106 test files).
+- [x] **Coverage Gate Met:** Global statements ≥85% (88.54%), branches ≥80% (80.21%), functions ≥85% (90.38%), lines ≥85% (89.51%).
 - [x] **Security Hardening (W1–W5):** WFP network egress, AppContainer sandbox, Windows Credential Manager DPAPI secrets, ETW telemetry, and SCM Windows Service packaging complete.
 - [x] **Release Packaging:** WiX MSI, MSIX, and winget manifests generated and verified.
