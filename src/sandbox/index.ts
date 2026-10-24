@@ -126,3 +126,5 @@ export {
   CredentialManagerClient,
   buildMasterKeyTargetName,
 } from './credential-manager-client.js';
+
+export { createCredentialManagerStore, type WindowsCredentialManagerStoreOptions } from './credential-manager-store-factory.js';
