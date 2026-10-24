@@ -136,9 +136,10 @@ export class RotatingFileStream extends Writable {
 
   override _final(callback: (error?: Error | null) => void): void {
     if (this.currentFd !== null) {
+      const fd = this.currentFd;
+      this.currentFd = null;
       try {
-        fs.closeSync(this.currentFd);
-        this.currentFd = null;
+        fs.closeSync(fd);
       } catch (err) {
         callback(err instanceof Error ? err : new Error(String(err)));
         return;

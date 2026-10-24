@@ -77,6 +77,8 @@ describe('RotatingFileStream', () => {
       maxSizeBytes: 1000,
       keep: 2,
     });
+    const errorHandler = vi.fn();
+    stream.on('error', errorHandler);
     (stream as unknown as { currentFd: number | null }).currentFd = 999999;
     await new Promise<void>((resolve) => {
       stream.end((err?: Error | null) => {
@@ -84,6 +86,7 @@ describe('RotatingFileStream', () => {
         resolve();
       });
     });
+    expect(errorHandler).toHaveBeenCalled();
   });
 
   it('rotates file when maxSizeBytes is exceeded', () => {
@@ -123,6 +126,8 @@ describe('RotatingFileStream', () => {
       maxSizeBytes: 1000,
       keep: 2,
     });
+    const errorHandler = vi.fn();
+    stream.on('error', errorHandler);
     vi.spyOn(stream, 'writeLine').mockImplementation(() => {
       throw new Error('simulated disk error');
     });
@@ -133,6 +138,7 @@ describe('RotatingFileStream', () => {
         resolve();
       });
     });
+    expect(errorHandler).toHaveBeenCalled();
   });
 
   it('closes existing fd on openCurrentFile and handles openSync errors', () => {
