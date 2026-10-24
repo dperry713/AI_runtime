@@ -38,6 +38,7 @@ for (const [mod, layer] of Object.entries(layers)) {
   });
 }
 
+forbidden.push(
   {
     name: 'child-process-only-in-sandbox',
     comment: 'Rule R2: only src/sandbox may spawn processes',
