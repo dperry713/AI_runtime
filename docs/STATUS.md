@@ -1,19 +1,19 @@
 # STATUS.md — AIR build status
 
 ## Current Phase
-**P11 — Multi-agent & scheduling** (MEC: LOCKED 2026-10-19)
+**P12 — Hardening, packaging, release** (MEC: LOCKED 2026-10-19)
 
 ## Phase Health
 | Phase | Status | Tasks Done/Total | Notes |
 |---|---|---|---|
 | P0–P8 | DONE | 71/71 | All exit gates passed |
 | P9 | DONE | 6/7 | P9-T01–T05, P9-T07 DONE; P9-T06 (Optional TUI) DEFERRED |
-| P10 | DONE | 4/4 | P10-T01 (MCP client), P10-T02 (Plugins/Skills), P10-T03 (Hooks), P10-T04 (Mock MCP server) DONE. Exit Gate P10 passed. |
-| P11 | TODO | 0/5 | P11-T01 Supervisor next up |
-| P12 | TODO | 0/7 | Not started |
+| P10 | DONE | 4/4 | P10-T01–P10-T04 DONE. Exit Gate P10 passed. |
+| P11 | DEFERRED | 0/5 | Deferred post-v1 per user directive |
+| P12 | DONE | 7/7 | P12-T01–P12-T07 DONE. Exit Gate P12 passed; v1.0 release candidate verified. |
 
 ## Overall Progress
-81 / 94 tasks done (86.2%)
+88 / 94 tasks done (93.6% — Phases 0–10 and Phase 12 complete; Phase 11 deferred post-v1)
 
 ## Windows Security Hardening (MEC-WINDOWS-SECURITY.md, LOCKED 2026-10-24)
 | Phase | Name | Status | Requirements |

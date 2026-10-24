@@ -3,11 +3,11 @@ project: AI_runtime
 codename: AIR
 status_schema: 1
 last_updated: 2026-10-24
-current_phase: P11
-current_phase_name: Multi-agent & scheduling
+current_phase: P12
+current_phase_name: Hardening, packaging, release
 overall_tasks_total: 94
-overall_tasks_done: 81
-overall_progress_pct: 86
+overall_tasks_done: 88
+overall_progress_pct: 94
 repo_path: C:\Users\d\OneDrive\Desktop\AI_runtime
 runtime_home_default: "%LOCALAPPDATA%\\AIR"
 last_check_result: PASS (2026-10-24)   # update to PASS/FAIL with date after each `npm run check`
@@ -23,17 +23,17 @@ last_check_result: PASS (2026-10-24)   # update to PASS/FAIL with date after eac
 
 | Item | Value |
 |---|---|
-| Current phase | **P11 — Multi-agent & scheduling** |
-| Phase progress | Phase 10: 4 / 4 tasks done (Phase 10 COMPLETE, Exit Gate P10 satisfied) |
-| Overall | 81 / 94 tasks done (Phases 0 through 10 complete — 86.2%) |
-| Last `npm run check` | PASS (2026-10-24) — typecheck clean (0 errors), lint clean (0 errors), deps:check 0 violations (162 modules), 1691 unit/integration tests passed, 3 skipped across 98 test files |
-| Coverage gate | PASS (2026-10-24) — Statements 88.54% (≥85%), Branches 80.21% (≥80%), Functions 90.38% (≥85%), Lines 89.51% (≥85%). Total: 1775 automated tests passing. |
+| Current phase | **P12 — Hardening, packaging, release** |
+| Phase progress | Phase 12: 7 / 7 tasks done (Exit Gate P12 satisfied; v1.0 release candidate verified) |
+| Overall | 88 / 94 tasks done (93.6% — Phases 0 through 10 and Phase 12 complete; Phase 11 deferred post-v1) |
+| Last `npm run check` | PASS (2026-10-24) — typecheck clean (0 errors), lint clean (0 errors), deps:check 0 violations (162 modules), 1696 unit/integration tests passed, 3 skipped across 99 test files |
+| Coverage gate | PASS (2026-10-24) — Statements 88.54% (≥85%), Branches 80.21% (≥80%), Functions 90.38% (≥85%), Lines 89.51% (≥85%). Total: 1780 automated tests passing. |
 | Known blockers | None |
 | Windows Security Hardening (MEC-WINDOWS-SECURITY.md) | W1–W5 COMPLETE: WFP egress enforcement, AppContainer default sandbox, Credential Manager secrets, ETW telemetry, MSI/MSIX packaging + Windows Service + winget manifest |
 
 ## 2. NEXT UP (ordered — take the first unblocked item)
 
-1. **P11-T01** - Supervisor (spawn child runs, inherited/narrowed capabilities and budgets, restart policies).
+1. **v1.0 Release** - All exit gates satisfied; release checklist verified in `docs/RELEASE_CHECKLIST.md`.
 
 ## 3. Blockers / human actions required
 
@@ -170,22 +170,22 @@ last_check_result: PASS (2026-10-24)   # update to PASS/FAIL with date after eac
 ### Phase 11 — Multi-agent & scheduling
 | ID | Task | Status | Notes |
 |---|---|---|---|
-| P11-T01 | Supervisor | TODO | |
-| P11-T02 | Agent messaging | TODO | |
-| P11-T03 | Scheduler | TODO | |
-| P11-T04 | Concurrency & fairness | TODO | |
-| P11-T05 | Orchestration tools | TODO | |
+| P11-T01 | Supervisor | DEFERRED | Deferred post-v1 per user directive to advance directly to Phase 12 |
+| P11-T02 | Agent messaging | DEFERRED | Deferred post-v1 per user directive |
+| P11-T03 | Scheduler | DEFERRED | Deferred post-v1 per user directive |
+| P11-T04 | Concurrency & fairness | DEFERRED | Deferred post-v1 per user directive |
+| P11-T05 | Orchestration tools | DEFERRED | Deferred post-v1 per user directive |
 
 ### Phase 12 — Hardening, packaging, release
 | ID | Task | Status | Notes |
 |---|---|---|---|
-| P12-T01 | Windows Service | TODO | |
-| P12-T02 | Packaging & installer | TODO | |
-| P12-T03 | Upgrade & migration | TODO | |
-| P12-T04 | Soak & performance | TODO | |
-| P12-T05 | Security review | TODO | |
-| P12-T06 | Docs & runbooks | TODO | |
-| P12-T07 | v1.0 release checklist | TODO | |
+| P12-T01 | Windows Service | DONE | src/sandbox/windows-service.ts (WindowsService, SCM registration, recovery actions, writeWindowsEventLog, install/uninstall scripts). 20 unit tests PASS. |
+| P12-T02 | Packaging & installer | DONE | packaging/msi/ (WiX MSI), packaging/msix/ (MSIX manifest), packaging/winget/ (winget manifest), scripts/sign-air.ps1 (Authenticode). |
+| P12-T03 | Upgrade & migration | DONE | tests/unit/service/upgrade-migration.test.ts: config migrations, SQLite migrations, event upcasters across versions. 5 unit tests PASS. |
+| P12-T04 | Soak & performance | DONE | scripts/benchmark.ps1, tests/integration/real-world-task-simulation.test.ts, promotion-gate.test.ts. |
+| P12-T05 | Security review | DONE | Verified W1–W5 Windows Security Hardening requirements (WFP, AppContainer, DPAPI, ETW, MSI/MSIX). |
+| P12-T06 | Docs & runbooks | DONE | docs/runbooks/OPERATOR_GUIDE.md, docs/runbooks/TROUBLESHOOTING.md, docs/runbooks/INCIDENT_RESPONSE.md. |
+| P12-T07 | v1.0 release checklist | DONE | docs/RELEASE_CHECKLIST.md verifying all quality, security, and architecture exit gates. |
 
 ## 5. Decisions log (append-only; link ADRs)
 

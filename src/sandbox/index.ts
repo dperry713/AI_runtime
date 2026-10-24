@@ -130,6 +130,7 @@ export {
 export {
   type ServiceInstallOptions,
   type ServiceStatus,
+  type WindowsEventLogOptions,
   AIR_SERVICE_NAME,
   AIR_SERVICE_DISPLAY_NAME,
   WindowsService,
@@ -138,6 +139,7 @@ export {
   startAirService,
   stopAirService,
   queryAirService,
+  writeWindowsEventLog,
 } from './windows-service.js';
 
 export { createCredentialManagerStore, type WindowsCredentialManagerStoreOptions } from './credential-manager-store-factory.js';

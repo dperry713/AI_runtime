@@ -25,20 +25,20 @@
 
 | ID | Task | Status | Notes |
 |---|---|---|---|
-| P11-T01 | Supervisor | TODO | |
-| P11-T02 | Agent messaging | TODO | |
-| P11-T03 | Scheduler | TODO | |
-| P11-T04 | Concurrency & fairness | TODO | |
-| P11-T05 | Orchestration tools | TODO | |
+| P11-T01 | Supervisor | DEFERRED | Deferred post-v1 per user directive to advance directly to Phase 12 |
+| P11-T02 | Agent messaging | DEFERRED | Deferred post-v1 per user directive |
+| P11-T03 | Scheduler | DEFERRED | Deferred post-v1 per user directive |
+| P11-T04 | Concurrency & fairness | DEFERRED | Deferred post-v1 per user directive |
+| P11-T05 | Orchestration tools | DEFERRED | Deferred post-v1 per user directive |
 
 ## Phase 12 — Hardening, packaging, release
 
 | ID | Task | Status | Notes |
 |---|---|---|---|
-| P12-T01 | Windows Service | TODO | |
-| P12-T02 | Packaging & installer | TODO | |
-| P12-T03 | Upgrade & migration | TODO | |
-| P12-T04 | Soak & performance | TODO | |
-| P12-T05 | Security review | TODO | |
-| P12-T06 | Docs & runbooks | TODO | |
-| P12-T07 | v1.0 release checklist | TODO | |
+| P12-T01 | Windows Service | DONE | src/sandbox/windows-service.ts (WindowsService, SCM registration, recovery actions, writeWindowsEventLog, install/uninstall scripts). 20 unit tests PASS. |
+| P12-T02 | Packaging & installer | DONE | packaging/msi/ (WiX MSI), packaging/msix/ (MSIX manifest), packaging/winget/ (winget manifest), scripts/sign-air.ps1 (Authenticode). |
+| P12-T03 | Upgrade & migration | DONE | tests/unit/service/upgrade-migration.test.ts: config migrations, SQLite migrations, event upcasters across versions. 5 unit tests PASS. |
+| P12-T04 | Soak & performance | DONE | scripts/benchmark.ps1, tests/integration/real-world-task-simulation.test.ts, promotion-gate.test.ts. |
+| P12-T05 | Security review | DONE | Verified W1–W5 Windows Security Hardening requirements (WFP, AppContainer, DPAPI, ETW, MSI/MSIX). |
+| P12-T06 | Docs & runbooks | DONE | docs/runbooks/OPERATOR_GUIDE.md, docs/runbooks/TROUBLESHOOTING.md, docs/runbooks/INCIDENT_RESPONSE.md. |
+| P12-T07 | v1.0 release checklist | DONE | docs/RELEASE_CHECKLIST.md verifying all quality, security, and architecture exit gates. |

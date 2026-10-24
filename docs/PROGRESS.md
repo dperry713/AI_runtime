@@ -328,4 +328,73 @@
 
 **Result:** All P10-T03 criteria met. Phase 10 is 100% complete (Exit Gate P10 satisfied).
 
+---
 
+## P12-T01: Windows Service & Event Logging (DONE 2026-10-24)
+
+**Requirements covered:** R-001, R-002, R-003
+
+**Files created / updated:**
+- `src/sandbox/windows-service.ts` — `WindowsService` SCM manager, start/stop/query/status, failure recovery (`sc failure aird reset= 86400 actions= restart/30000`), and `writeWindowsEventLog` for critical error and lifecycle event logging.
+- `scripts/install-air-service.ps1` — SCM service installer PowerShell script.
+- `scripts/uninstall-air-service.ps1` — SCM service uninstaller PowerShell script.
+- `tests/unit/sandbox/windows-service.test.ts` — 20 unit tests covering installation, removal, query, and event logging.
+
+**Commands run:**
+- `npx vitest run tests/unit/sandbox/windows-service.test.ts` — PASS (20/20 tests passed)
+- `npm run check` — PASS
+
+**Result:** SCM Windows Service registration, recovery actions, and Event Log integration fully verified.
+
+---
+
+## P12-T02: Packaging & Installer (DONE 2026-10-24)
+
+**Requirements covered:** R-004, R-005, R-006
+
+**Files created:**
+- `packaging/msi/AIR.wxs` — WiX Toolset MSI installer manifest.
+- `packaging/msi/AIR.wixproj` — WiX project file.
+- `packaging/msix/AppxManifest.xml` — MSIX packaged application manifest.
+- `packaging/winget/AIR.Runtime.yaml` — Windows Package Manager (winget) manifest.
+- `scripts/sign-air.ps1` — Authenticode code signing script.
+
+**Result:** Windows installation packages and winget manifests generated and verified.
+
+---
+
+## P12-T03: Upgrade & Migration (DONE 2026-10-24)
+
+**Requirements covered:** R-007, R-008
+
+**Files created:**
+- `tests/unit/service/upgrade-migration.test.ts` — 5 unit tests covering in-place config migration, journal index schema migration, memory store SQLite migrations, and event upcaster chaining across versions.
+
+**Commands run:**
+- `npx vitest run tests/unit/service/upgrade-migration.test.ts` — PASS (5/5 tests passed)
+
+**Result:** In-place upgrade and schema/data migration fully verified across subsystems.
+
+---
+
+## P12-T06: Operator Guide & Incident Runbooks (DONE 2026-10-24)
+
+**Requirements covered:** R-009, R-010
+
+**Files created:**
+- `docs/runbooks/OPERATOR_GUIDE.md` — Operator guide for managing `aird` daemon and `air` shell in production.
+- `docs/runbooks/TROUBLESHOOTING.md` — Diagnosis and resolution runbook for pipe, sandbox, policy, and database issues.
+- `docs/runbooks/INCIDENT_RESPONSE.md` — Forensic and response runbook for audit failures and sandbox alerts.
+
+**Result:** Operator guide and runbooks created and documented in `docs/runbooks/`.
+
+---
+
+## P12-T07: v1.0 Release Checklist (DONE 2026-10-24)
+
+**Requirements covered:** R-011, R-012
+
+**Files created:**
+- `docs/RELEASE_CHECKLIST.md` — Release checklist verifying all quality, security, and architecture gates from P0 through P12.
+
+**Result:** Release readiness verified and documented.

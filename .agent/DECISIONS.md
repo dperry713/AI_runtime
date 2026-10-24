@@ -6,3 +6,4 @@
 - 2026-10-16 | Rust toolchain approved for native sandbox helper (P7-T02) | User confirmed Rust toolchain is fine for Windows Job Objects sandbox helper | rejected: C++ or pure Node native addon
 - 2026-10-16 | Windows long paths requested | User approved enabling LongPathsEnabled=1; requires elevated admin prompt to write HKLM | rejected: MAX_PATH limitation
 - 2026-10-16 | Transitional secrets store (ADR-0005) | CredentialManagerStore uses authenticated AES-256-GCM encrypted file vault as transitional layer; will be enhanced with native Windows Credential Manager / DPAPI before production secrets | rejected: direct C++ native addon in Phase 1
+- 2026-10-24 | Skip Phase 11 and advance to Phase 12 (Hardening, packaging, release) | User directive; multi-agent and scheduling tasks deferred post-v1; advance directly to production Windows service, packaging, runbooks, and release readiness | rejected: blocking release hardening on multi-agent supervisor

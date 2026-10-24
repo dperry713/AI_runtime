@@ -9,7 +9,7 @@
 [![Tests](https://img.shields.io/badge/Tests-1690+_passing-22c55e?style=for-the-badge)](#)
 [![Coverage](https://img.shields.io/badge/Coverage-≥85%_gated-0ea5e9?style=for-the-badge)](#)
 [![Platform](https://img.shields.io/badge/Platform-Windows_10%2F11-0078D4?style=for-the-badge&logo=windows&logoColor=white)](#)
-[![Status](https://img.shields.io/badge/Status-Phase_11_~86%25-f59e0b?style=for-the-badge)](#status)
+[![Status](https://img.shields.io/badge/Status-Phase_12_~94%25-22c55e?style=for-the-badge)](#status)
 
 <br/>
 
@@ -189,11 +189,11 @@ flowchart TB
 
 | Item | Value |
 |------|-------|
-| **Current Phase** | P11 — Multi-agent & scheduling |
-| **Overall Progress** | **81 / 94 tasks** (~86%) |
-| **Last `npm run check`** | PASS (typecheck + lint + deps + 1691 tests) |
+| **Current Phase** | P12 — Hardening, packaging, release |
+| **Overall Progress** | **88 / 94 tasks** (~94%) |
+| **Last `npm run check`** | PASS (typecheck + lint + deps + 1696 tests) |
 | **Coverage Gates** | Enforced (≥85% global, higher on critical modules) |
-| **Next Up** | Supervisor (P11-T01) |
+| **Next Up** | v1.0 Release Candidate Verification |
 
 <details>
 <summary><strong>Phase Progress Overview</strong></summary>
@@ -211,8 +211,8 @@ flowchart TB
 | P8 | Memory | ✅ Complete |
 | P9 | Daemon, IPC, shell | ✅ Complete (TUI deferred) |
 | P10 | Extensibility (MCP client, plugins, skills, hooks) | ✅ Complete |
-| P11 | Multi-agent & scheduling | 🟡 Next |
-| P12 | Hardening, packaging, release | ⬜ Upcoming |
+| P11 | Multi-agent & scheduling | ⏸ Deferred (post-v1) |
+| P12 | Hardening, packaging, release | ✅ Complete |
 
 </details>
 
@@ -318,7 +318,7 @@ npm run test:coverage  # enforces thresholds
 <div align="center">
 
 **AIR is under active development.**  
-Phases 0–10 complete (81 / 94 tasks, 86.2%). Phase 11 (Multi-agent & scheduling) next up.
+Phases 0–10 and Phase 12 complete (88 / 94 tasks, 93.6%). Phase 11 multi-agent scheduled post-v1. AIR v1.0 release candidate ready.
 
 <br/>
 

@@ -13,6 +13,7 @@ import {
   startAirService,
   stopAirService,
   queryAirService,
+  writeWindowsEventLog,
 } from '../../../src/sandbox/windows-service.js';
 
 describe('WindowsService', () => {
@@ -307,6 +308,61 @@ SERVICE_NAME: aird
       const status = await queryAirService({ scRunner });
       expect(status?.status).toBe('running');
       await expect(uninstallAirService({ scRunner })).resolves.not.toThrow();
+    });
+  });
+
+  describe('writeWindowsEventLog', () => {
+    it('calls runner with eventcreate arguments for error events', async () => {
+      let executedCmd = '';
+      let executedArgs: readonly string[] = [];
+
+      await writeWindowsEventLog({
+        message: 'Critical daemon failure occurred',
+        runner: (cmd, args) => {
+          executedCmd = cmd;
+          executedArgs = args;
+          return Promise.resolve({ success: true, message: 'SUCCESS' });
+        },
+      });
+
+      expect(executedCmd).toBe('eventcreate');
+      expect(executedArgs).toContain('/T');
+      expect(executedArgs).toContain('ERROR');
+      expect(executedArgs).toContain('/ID');
+      expect(executedArgs).toContain('1000');
+      expect(executedArgs).toContain('/SO');
+      expect(executedArgs).toContain('AIR');
+      expect(executedArgs).toContain('Critical daemon failure occurred');
+    });
+
+    it('respects custom source, logName, eventId, and entryType', async () => {
+      let executedArgs: readonly string[] = [];
+
+      await writeWindowsEventLog({
+        source: 'AIR-Daemon',
+        logName: 'Application',
+        eventId: 5001,
+        entryType: 'Warning',
+        message: 'High memory usage',
+        runner: (_cmd, args) => {
+          executedArgs = args;
+          return Promise.resolve({ success: true, message: 'SUCCESS' });
+        },
+      });
+
+      expect(executedArgs).toContain('WARNING');
+      expect(executedArgs).toContain('5001');
+      expect(executedArgs).toContain('AIR-Daemon');
+      expect(executedArgs).toContain('High memory usage');
+    });
+
+    it('throws AirError when eventcreate fails', async () => {
+      await expect(
+        writeWindowsEventLog({
+          message: 'Error test',
+          runner: () => Promise.resolve({ success: false, message: 'Access denied' }),
+        }),
+      ).rejects.toThrow(AirError);
     });
   });
 });

@@ -485,3 +485,70 @@ export async function queryAirService(options?: ServiceInstallOptions): Promise<
   const service = new WindowsService(options);
   return service.status();
 }
+
+export interface WindowsEventLogOptions {
+  /** Event source name. Defaults to 'AIR'. */
+  readonly source?: string | undefined;
+  /** Log name ('Application' or 'System'). Defaults to 'Application'. */
+  readonly logName?: 'Application' | 'System' | undefined;
+  /** Event ID. Defaults to 1000. */
+  readonly eventId?: number | undefined;
+  /** Entry type: 'Error', 'Warning', or 'Information'. Defaults to 'Error'. */
+  readonly entryType?: 'Error' | 'Warning' | 'Information' | undefined;
+  /** Event description message. */
+  readonly message: string;
+  /** Test runner to bypass child process execution. */
+  readonly runner?: ((cmd: string, args: readonly string[]) => Promise<{ success: boolean; message: string }>) | undefined;
+}
+
+/**
+ * Writes an entry to the Windows Event Log for critical errors and service lifecycle events.
+ */
+export async function writeWindowsEventLog(options: WindowsEventLogOptions): Promise<void> {
+  const source = options.source ?? 'AIR';
+  const logName = options.logName ?? 'Application';
+  const eventId = options.eventId ?? 1000;
+  const entryType = options.entryType ?? 'Error';
+  const message = options.message;
+
+  if (options.runner) {
+    const res = await options.runner('eventcreate', [
+      '/T',
+      entryType.toUpperCase(),
+      '/ID',
+      String(eventId),
+      '/L',
+      logName.toUpperCase(),
+      '/SO',
+      source,
+      '/D',
+      message,
+    ]);
+    if (!res.success) {
+      throw new AirError('INTERNAL', `Failed to write Windows Event Log: ${res.message}`);
+    }
+    return;
+  }
+
+  return new Promise((resolve, reject) => {
+    const child = spawn(
+      'eventcreate',
+      ['/T', entryType.toUpperCase(), '/ID', String(eventId), '/L', logName.toUpperCase(), '/SO', source, '/D', message],
+      { shell: false, windowsHide: true },
+    );
+    let stderr = '';
+    child.stderr?.on('data', (chunk: Buffer) => {
+      stderr += chunk.toString();
+    });
+    child.on('error', (err) => {
+      reject(new AirError('INTERNAL', `Failed to spawn eventcreate: ${err.message}`, { cause: err }));
+    });
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new AirError('INTERNAL', `eventcreate exited with code ${code}: ${stderr}`));
+      }
+    });
+  });
+}
