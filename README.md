@@ -88,6 +88,53 @@ It sits between “an LLM API” and “something you can actually trust to run 
 
 ---
 
+## Why AIR?
+
+Most agent frameworks help you **write** agents.
+
+AIR is designed to help you **run** them safely.
+
+LangGraph gives you powerful stateful graphs and durable execution. CrewAI gives you fast role-based multi-agent collaboration.
+
+Both are excellent at orchestration. Isolation, policy enforcement, and auditability still require careful implementation and configuration for your deployment.
+
+AIR takes a different approach:
+
+- It is a **Windows-native runtime**, not just a library.
+- Agents are designed to run with OS-level isolation, including Windows Job Objects and restricted execution boundaries.
+- Every action is governed by a **deny-by-default policy engine** with taint tracking.
+- The **event-sourced journal** is the source of truth, supporting crash recovery, replay, and a full audit trail.
+- Secrets are kept out of tool processes where supported by the credential and execution boundaries. Network egress controls and human approvals are part of the security model.
+
+**In short:**
+
+| If you need… | Prefer |
+| --- | --- |
+| Complex workflows and branching | LangGraph |
+| Fast multi-agent role collaboration | CrewAI |
+| Agents that can use real tools on Windows with runtime-enforced isolation, policy, and audit | **AIR** |
+
+AIR is for people who want agents they can leave running with confidence that execution is constrained by the boundaries they define.
+
+---
+
+### Comparison at a Glance
+
+| Dimension | AIR | LangGraph | CrewAI |
+| --- | --- | --- | --- |
+| **Primary focus** | Secure agent runtime on Windows | Stateful graph orchestration | Role-based multi-agent crews |
+| **Platform** | Windows-first | Cross-platform | Cross-platform |
+| **Isolation model** | OS-level process containment; Windows Job Objects and restricted execution boundaries | Application-level orchestration; isolation depends on deployment | Application-level orchestration; isolation depends on deployment |
+| **Policy** | Deny-by-default policy and taint tracking | Application-defined | Application-defined |
+| **Audit and recovery** | Event-sourced journal, integrity checks, and replay | Checkpointing and optional LangSmith observability | Depends on configured persistence and observability |
+| **Human approval** | First-class policy decision path | Supported through interrupts and application logic | Supported through task/workflow design and application logic |
+| **Local models** | Ollama and OpenAI-compatible providers | Supported through integrations | Supported through integrations |
+| **Best for** | Constrained, auditable agents using real Windows tools | Complex, long-running workflows | Rapid multi-agent collaboration and prototyping |
+
+> **Positioning note:** AIR complements orchestration frameworks. LangGraph or CrewAI can coordinate workflow logic while AIR provides a runtime boundary for executing agent actions on Windows.
+
+---
+
 ## Architecture
 
 ```mermaid
